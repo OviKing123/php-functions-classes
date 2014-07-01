@@ -595,40 +595,46 @@ class DOMDocument2 extends DOMDocument {
 		foreach ( $groups as $groupk => $groupv ) {
 			if ( $nodes->length === 0 ) {
 				if ( isset( $groupv['tag'] ) && isset( $groupv['attr'] ) && isset( $groupv['value'] ) ) {
-					$nodeList = static::domListTagAttrValue( $this, $groupv['tag'], $groupv['attr'], $groupv['value'] );
-					if ( $nodeList->length === 0 ) {
+					$nodes = static::domListTagAttrValue( $this, $groupv['tag'], $groupv['attr'], $groupv['value'] );
+					if ( $nodes->length === 0 ) {
 						break;
 					}
-					$nodes = $nodeList;
 					continue;
 				}
 				if ( isset( $groupv['tag'] ) && isset( $groupv['attr'] ) ) {
-					$nodeList = static::domListTagAttr( $this, $groupv['tag'], $groupv['attr'] );
-					if ( $nodeList->length === 0 ) {
+					$nodes = static::domListTagAttr( $this, $groupv['tag'], $groupv['attr'] );
+					if ( $nodes->length === 0 ) {
 						break;
 					}
-					$nodes = $nodeList;
 					continue;
 				}
 				if ( isset( $groupv['tag'] ) ) {
-					$nodeList = static::domListTag( $this, $groupv['tag'] );
-					if ( $nodeList->length === 0 ) {
+					$nodes = static::domListTag( $this, $groupv['tag'] );
+					if ( $nodes->length === 0 ) {
 						break;
 					}
-					$nodes = $nodeList;
 					continue;
 				}
 			} else {
 				if ( isset( $groupv['tag'] ) && isset( $groupv['attr'] ) && isset( $groupv['value'] ) ) {
 					$nodes = static::nodeListTagAttrValue( $nodes, $groupv['tag'], $groupv['attr'], $groupv['value'] );
+					if ( $nodes->length === 0 ){
+						break;
+					}
 					continue;
 				}
 				if ( isset( $groupv['tag'] ) && isset( $groupv['attr'] ) ) {
 					$nodes = static::nodeListTagAttr( $nodes, $groupv['tag'], $groupv['attr'] );
+					if ( $nodes->length === 0 ){
+						break;
+					}
 					continue;
 				}
 				if ( isset( $groupv['tag'] ) ) {
 					$nodes = static::nodeListTag( $nodes, $groupv['tag'] );
+					if ( $nodes->length === 0 ){
+						break;
+					}
 					continue;
 				}
 			}
@@ -638,14 +644,35 @@ class DOMDocument2 extends DOMDocument {
 
 	public static function outerHTML( $node ) {
 		if ( $node instanceof DOMElement ) {
-			$tmp = new DOMDocument();
+			$tmp = new DOMDocument2();
 			$tmp->appendChild( $tmp->importNode( $node, true ) );
 			$html = $tmp->saveHTML();
 			$html = ( substr( $html, -1 ) === "\x0a" ) ? substr( $html, 0, -1 ) : $html;
 			return $html;
-		} else {
-			die( 'HAHA' );
+		} elseif ( is_string( $node ) ) {
+			return $node;
 		}
+		return $node;
+	}
+
+	public static function innerHTML( $node ) {
+		if ( $node instanceof DOMElement ) {
+			$tmp = new DOMDocument2();
+			$tmp->appendChild( $tmp->importNode( $node, true ) );
+			$html = $tmp->saveHTML();
+			$html = ( substr( $html, -1 ) === "\x0a" ) ? substr( $html, 0, -1 ) : $html;
+			$left = strpos( $html, '>' );
+			$right = strpos( strrev( $html ), '<' );
+			if ( $left !== false && $right !== false ) {
+				$html = substr( $html, $left + 1 );
+				$html = substr( $html, 0, -( $right + 1 ) );
+				$html = trim( $html );
+			}
+			return $html;
+		} elseif ( is_string( $node ) ) {
+			return $node;
+		}
+		return $node;
 	}
 
 	/* New Methods */
