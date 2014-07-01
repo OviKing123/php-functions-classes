@@ -710,4 +710,5 @@ class DOMDocument2 extends DOMDocument {
 
 }
 
+
 ?>
