@@ -1,9 +1,168 @@
 <?php
 
-class DOMDocument2 extends DOMDocument {
+/* TODO */
+
+class DOMAttr2 extends DOMAttr {}
+class DOMCharacterData2 extends DOMCharacterData {}
+class DOMDocumentFragment2 extends DOMDocumentFragment {}
+class DOMDocumentType2 extends DOMDocumentType {}
+class DOMEntity2 extends DOMEntity {}
+class DOMEntityReference2 extends DOMEntityReference {}
+class DOMNotation2 extends DOMNotation {}
+class DOMProcessingInstruction2 extends DOMProcessingInstruction {}
+class DOMNode2 extends DOMNode {}
+
+/* IMPOSSIBLE TO DATE - ONLY THEORETICAL CODE */
+
+class DOMNodeList2 extends DOMNodeList {
+
+	public function item( $index ) {
+		return DOMNodeList::item( $index );
+	}
+
+	public function hasIndex( $index ) {
+		return DOMNodeList::item( $index );
+	}
+
+	public function first() {
+		return DOMNodeList::item(0);
+	}
+
+	public function second() {
+		return DOMNodeList::item(1);
+	}
+
+	public function last() {
+		return $this->length - 1 > 0 ? DOMNodeList::item( $this->length - 1 ) : null;
+	}
+
+	public function hasItem( $index ) {
+		return self::hasIndex( $index );
+	}
+
+}
+
+class DOMElement2 extends DOMElement {
+
+	public function __construct( $name, $value = null, $namespaceURI = null ) {
+		parent::__construct( $name, $value, $namespaceURI );
+	}
+
+	public function __destruct() {
+	}
+
+	public function __toString() {
+		return $this->nodeValue;
+	}
+
+	public function __get( $name ) {
+
+		if ( isset( $this->$name ) ) {
+			return $this->$name;
+		}
+
+		switch ( strtolower( $name ) ) {
+			case 'outerhtml':
+			case 'htmlouter':
+			case 'outer':
+			case 'out':
+				return self::outerHTML( $this );
+				break;
+			case 'innerhtml':
+			case 'htmlinner':
+			case 'inner':
+			case 'in':
+				return self::innerHTML( $this );
+				break;
+			default:
+				trigger_error( 'Undefined property: ' . __CLASS__ . '::$' . $name, E_USER_NOTICE );
+				break;
+		}
+
+	}
+
+	public function innerElement( $element = null ) {
+		$element = !is_null( $element ) ? $element : $this;
+		$dom = new DOMDocument2();
+		$result = $dom->innerElement( $element );
+		return $result;
+	}
+
+	public function innerHTML( $element = null ) {
+		return self::innerElement( $element );
+	}
+
+	public function inner( $element = null ) {
+		return self::innerElement( $element );
+	}
+
+	public function in( $element = null ) {
+		return self::innerElement( $element );
+	}
+
+	public function elementInner( $element = null ) {
+		return self::innerElement( $element );
+	}
+
+	public function HTMLInner( $element = null ) {
+		return self::innerElement( $element );
+	}
+
+	public function outerElement( $element = null ) {
+		$element = !is_null( $element ) ? $element : $this;
+		$dom = new DOMDocument2();
+		$result = $dom->outerElement( $element );
+		return $result;
+	}
+
+	public function outerHTML( $element = null ) {
+		return self::outerElement( $element );
+	}
+
+	public function outer( $element = null ) {
+		return self::outerElement( $element );
+	}
+
+	public function out( $element = null ) {
+		return self::outerElement( $element );
+	}
+
+	public function elementOuter( $element = null ) {
+		return self::outerElement( $element );
+	}
+
+	public function HTMLOuter( $element = null ) {
+		return self::outerElement( $element );
+	}
+
+}
+
+class DOMDocument2 extends DOMDocument implements Serializable {
+
+	/* Magic Methods */
 
 	public function __construct( $version = null, $encoding = null ) {
 		DOMDocument::__construct( $version, $encoding );
+		libxml_use_internal_errors( true );
+		$this->registerNodeClass( 'DOMElement', 'DOMElement2' );
+		$this->recover = true;
+		$this->strictErrorChecking = false;
+	}
+
+	public function serialize(){
+		return static::isHTML( self::saveHTML() ) ? self::saveHTML() : self::saveXML();
+	}
+
+	public function unserialize( $serialized ) {
+		return static::isHTML( self::saveHTML() ) ? self::loadHTML() : self::loadXML();
+	}
+
+	public function __toString() {
+		return $this->outerHTML();
+	}
+
+	public function c14N( $exclusive = false, $with_comments = true, array $xpath = null, array $ns_prefixes = null ) {
+		return str_replace( '<br></br>', '<br/>', DOMDocument::c14N( $exclusive, $with_comments, $xpath, $ns_prefixes ) );
 	}
 
 	public static function isHTML( $filename ) {
@@ -71,21 +230,23 @@ class DOMDocument2 extends DOMDocument {
 	}
 
 	public function load( $filename, $options = 0 ) {
-		if ( file_exists( $filename ) ) {
-			return ( $options === 0 ) ? DOMDocument::load( $filename ) : DOMDocument::load( $filename, $options );
-		} elseif ( static::isHTML( $filename ) ) {
-			return ( $options === 0 ) ? $this->loadHTML( $filename ) : $this->loadHTML( $filename, $options );
-		} elseif ( static::isXML( $filename ) ) {
-			return ( $options === 0 ) ? $this->loadXML( $filename ) : $this->loadXML( $filename, $options );
+		if ( static::isHTML( $filename ) ) {
+			if ( file_exists( $filename ) ) {
+				return ( $options === 0 ) ? self::loadHTMLFile( $filename ) : self::loadHTMLFile( $filename, $options );
+			} else {
+				return ( $options === 0 ) ? self::loadHTML( $filename ) : self::loadHTML( $filename, $options );
+			}
+		} elseif ( static::isXML( $filename ) && is_string( $filename ) && !file_exists( $filename ) ) {
+			return ( $options === 0 ) ? self::loadXML( $filename ) : self::loadXML( $filename, $options );
 		} else {
 			return ( $options === 0 ) ? DOMDocument::load( $filename ) : DOMDocument::load( $filename, $options );
 		}
 	}
 
 	public function loadHTML( $source, $options = 0 ) {
-		libxml_use_internal_errors( true );
-		$this->recover = true;
-		$this->strictErrorChecking = false;
+		if ( file_exists( $source ) ) {
+			return ( $options === 0 ) ? self::loadHTMLFile( $source ) : self::loadHTMLFile( $source, $options );
+		}
 		return ( $options === 0 ) ? DOMDocument::loadHTML( $source ) : DOMDocument::loadHTML( $source, $options );
 	}
 
@@ -180,17 +341,11 @@ class DOMDocument2 extends DOMDocument {
 					$value .= $char;
 					continue;
 				}
-				echo '<h1>CTYPE_ALPHA</h1>';
-				var_dump( $char );
-				die();
 			} elseif ( $char === "\x2d" ) {
 				if ( !$is_tag && !$is_attr ) {
 					$value .= $char;
 					continue;
 				}
-				echo '<h1>\x2d</h1>';
-				var_dump( $char );
-				die();
 			} else {
 				if ( $char === '.' ) {
 					if ( !$is_tag && !$is_attr && !$is_value ) {
@@ -200,8 +355,6 @@ class DOMDocument2 extends DOMDocument {
 						$groups[$counter]['tag'] = '*';
 						$groups[$counter]['attr'] = 'class';
 						continue;
-					} else {
-						die( 'Die Dot Class' );
 					}
 				}
 				if ( $char === '#' ) {
@@ -212,8 +365,6 @@ class DOMDocument2 extends DOMDocument {
 						$groups[$counter]['tag'] = '*';
 						$groups[$counter]['attr'] = 'id';
 						continue;
-					} else {
-						die( 'Die Dot Id' );
 					}
 				}
 				if ( $char === '[' ) {
@@ -264,11 +415,13 @@ class DOMDocument2 extends DOMDocument {
 						continue;
 					}
 				}
-				echo '<h1>ELSE</h1>';
-				var_dump( $tag );
-				var_dump( $groups );
-				var_dump( $char );
-				die();
+				if ( $char === "\x22" || $char === "\x27" ) {
+					continue;
+				}
+				if ( !$is_tag && !$is_attr ) {
+					$value .= $char;
+					continue;
+				}
 			}
 		}
 		if ( !empty( $tag ) ) $groups[$counter]['tag'] = $tag;
@@ -302,17 +455,11 @@ class DOMDocument2 extends DOMDocument {
 					$value .= $char;
 					continue;
 				}
-				echo '<h1>CTYPE_ALPHA</h1>';
-				var_dump( $char );
-				die();
 			} elseif ( $char === "\x2d" ) {
 				if ( !$is_tag && !$is_attr ) {
 					$value .= $char;
 					continue;
 				}
-				echo '<h1>\x2d</h1>';
-				var_dump( $char );
-				die();
 			} else {
 				if ( $char === '.' ) {
 					if ( !$is_tag && !$is_attr && !$is_value ) {
@@ -322,8 +469,6 @@ class DOMDocument2 extends DOMDocument {
 						$groups[$counter]['tag'] = '*';
 						$groups[$counter]['attr'] = 'class';
 						continue;
-					} else {
-						die( 'Die Dot Class' );
 					}
 				}
 				if ( $char === '#' ) {
@@ -334,8 +479,6 @@ class DOMDocument2 extends DOMDocument {
 						$groups[$counter]['tag'] = '*';
 						$groups[$counter]['attr'] = 'id';
 						continue;
-					} else {
-						die( 'Die Dot Id' );
 					}
 				}
 				if ( $char === '[' ) {
@@ -386,11 +529,13 @@ class DOMDocument2 extends DOMDocument {
 						continue;
 					}
 				}
-				echo '<h1>ELSE</h1>';
-				var_dump( $tag );
-				var_dump( $groups );
-				var_dump( $char );
-				die();
+				if ( $char === "\x22" || $char === "\x27" ) {
+					continue;
+				}
+				if ( !$is_tag && !$is_attr ) {
+					$value .= $char;
+					continue;
+				}
 			}
 		}
 		if ( !empty( $tag ) ) $groups[$counter]['tag'] = $tag;
@@ -401,7 +546,7 @@ class DOMDocument2 extends DOMDocument {
 
 	/* Dom List Tag Attribute Value */
 
-	protected static function domListTagAttrValue( $dom, $tag, $attr, $value ) {
+	public static function domListTagAttrValue( $dom, $tag, $attr, $value ) {
 
 		$list = $dom->getElementsByTagName( $tag );
 
@@ -411,6 +556,7 @@ class DOMDocument2 extends DOMDocument {
 
 		$tmp = new DOMDocument2();
 		$i = 0;
+		$j = 0;
 
 		for (;;) {
 			$el = $list->item( $i );
@@ -438,7 +584,7 @@ class DOMDocument2 extends DOMDocument {
 
 	}
 
-	protected static function domListTagAttr( $dom, $tag, $attr ) {
+	public static function domListTagAttr( $dom, $tag, $attr ) {
 
 		$list = $dom->getElementsByTagName( $tag );
 
@@ -642,35 +788,124 @@ class DOMDocument2 extends DOMDocument {
 		return $nodes;
 	}
 
-	public static function outerHTML( $node ) {
+	public function outerString( $value = null ) {
+		$value = !is_null( $value ) ? $value : $this;
+		if ( is_string( $value ) ) {
+			return trim( $value );
+		} elseif ( $value instanceof DOMElement ) {
+			return self::outerElement( $value );
+		} elseif ( $value instanceof DOMDocument ) {
+			return self::outerDOM( $value );
+		}
+		return $value;
+	}
+
+	public function outerDOM( $dom = null ) {
+		$dom = !is_null( $dom ) ? $dom : $this;
+		if ( $dom instanceof DOMDocument ) {
+			$html = $dom->saveHTML();
+			if ( strtolower( substr( ltrim( $html ), 0, 10 ) ) === '<!doctype ' ) {
+				if ( ( $pos = strpos( $html, '>' ) ) !== false ) {
+					$html = ltrim( substr( $html, $pos + 1 ) );
+				}
+			}
+			return $html;
+		} elseif ( $dom instanceof DOMElement ) {
+			return self::outerElement( $dom );
+		} elseif ( is_string( $dom ) ) {
+			return self::outerString( $dom );
+		}
+		return $dom;
+	}
+
+	public function outerElement( $node = null ) {
+		$node = !is_null( $node ) ? $node : $this;
 		if ( $node instanceof DOMElement ) {
-			$tmp = new DOMDocument2();
-			$tmp->appendChild( $tmp->importNode( $node, true ) );
-			$html = $tmp->saveHTML();
+			$dom = new DOMDocument2();
+			$dom->appendChild( $dom->importNode( $node, true ) );
+			$html = $dom->saveHTML();
 			$html = ( substr( $html, -1 ) === "\x0a" ) ? substr( $html, 0, -1 ) : $html;
 			return $html;
+		} elseif ( $node instanceof DOMDocument ) {
+			return self::outerDOM( $node );
 		} elseif ( is_string( $node ) ) {
-			return $node;
+			return self::outerString( $node );
 		}
 		return $node;
 	}
 
-	public static function innerHTML( $node ) {
+	public function outerHTML( $node = null ) {
+		$node = !is_null( $node ) ? $node : $this;
 		if ( $node instanceof DOMElement ) {
-			$tmp = new DOMDocument2();
-			$tmp->appendChild( $tmp->importNode( $node, true ) );
-			$html = $tmp->saveHTML();
-			$html = ( substr( $html, -1 ) === "\x0a" ) ? substr( $html, 0, -1 ) : $html;
-			$left = strpos( $html, '>' );
-			$right = strpos( strrev( $html ), '<' );
+			return self::outerElement( $node );
+		} elseif ( $node instanceof DOMDocument ) {
+			return self::outerDOM( $node );
+		} elseif ( is_string( $node ) ) {
+			return self::outerString( $node );
+		}
+		return $node;
+	}
+
+	public function innerString( $value = null ) {
+		$value = !is_null( $value ) ? $value : $this;
+		if ( is_string( $value ) ) {
+			$left = strpos( $value, '>' );
+			$right = strpos( strrev( $value ), '<' );
 			if ( $left !== false && $right !== false ) {
-				$html = substr( $html, $left + 1 );
-				$html = substr( $html, 0, -( $right + 1 ) );
-				$html = trim( $html );
+				$value = substr( $value, $left + 1 );
+				$value = substr( $value, 0, -( $right + 1 ) );
+				$value = trim( $value );
+			}
+			return $value;
+		} elseif ( $value instanceof DOMElement ) {
+			return self::innerElement( $value );
+		} elseif ( $value instanceof DOMDocument ) {
+			return self::innerDOM( $value );
+		}
+		return $value;
+	}
+
+	public function innerDOM( $dom = null ) {
+		$dom = !is_null( $dom ) ? $dom : $this;
+		if ( $dom instanceof DOMDocument ) {
+			$html = $dom->saveHTML();
+			if ( strtolower( substr( ltrim( $html ), 0, 10 ) ) === '<!doctype ' ) {
+				if ( ( $pos = strpos( $html, '>' ) ) !== false ) {
+					$html = substr( $html, $pos + 1 );
+					$html = self::innerString( $html );
+				}
 			}
 			return $html;
+		} elseif ( $dom instanceof DOMElement ) {
+			return self::innerElement( $dom );
+		} elseif ( is_string( $dom ) ) {
+			return self::innerString( $dom );
+		}
+		return $dom;
+	}
+
+	public function innerElement( $node = null ) {
+		$node = !is_null( $node ) ? $node : $this;
+		if ( $node instanceof DOMElement ) {
+			$html = self::outerElement( $node );
+			$html = self::innerString( $html );
+			return $html;
+		} elseif ( $node instanceof DOMDocument ) {
+			return self::innerDOM( $node );
 		} elseif ( is_string( $node ) ) {
-			return $node;
+			return self::innerString( $node );
+		}
+		return $node;
+	}
+
+	public function innerHTML( $node = null ) {
+		$node = !is_null( $node ) ? $node : $this;
+		if ( $node instanceof DOMElement ) {
+			return self::innerElement( $node );
+		} elseif ( $node instanceof DOMDocument ) {
+			return self::innerDOM( $node );
+		} elseif ( is_string( $node ) ) {
+			return self::innerString( $node );
 		}
 		return $node;
 	}
@@ -686,7 +921,7 @@ class DOMDocument2 extends DOMDocument {
 	/* New Methods */
 
 	public function querySelector( $selector ) {
-		return ( ( $nodes = $this->querySelectorAll( $selector ) ) ) ? $nodes[0] : null;
+		return ( ( $nodes = $this->querySelectorAll( $selector ) ) ) ? $nodes[0] : new DOMNodeList();
 	}
 
 	public function querySelectorAll( $selector ) {
@@ -722,6 +957,7 @@ class DOMDocument2 extends DOMDocument {
 	}
 
 	public function loadFile( $filename, $options = 0 ) {
+		//self::registerNodeClass( "DOMElement", "DOMElement2" );
 		return self::loadHTMLFile( $filename, $options );
 	}
 
@@ -731,11 +967,26 @@ class DOMDocument2 extends DOMDocument {
 
 	/* New Methods */
 
+	public function outer( $value = null ) {
+		return self::outerHTML( $value );
+	}
+
+	public function out( $value = null ) {
+		return self::outerHTML( $value );
+	}
+
+	public function inner( $value = null ) {
+		return self::innerHTML( $value );
+	}
+
+	public function in( $value = null ) {
+		return self::innerHTML( $value );
+	}
+
 	public function find( $selector ) {
 		return self::querySelectorAll( $selector );
 	}
 
 }
-
 
 ?>
