@@ -1,7 +1,5 @@
 <?php
 
-/* TODO */
-
 class DOMAttr2 extends DOMAttr {}
 class DOMCharacterData2 extends DOMCharacterData {}
 class DOMDocumentFragment2 extends DOMDocumentFragment {}
@@ -12,29 +10,53 @@ class DOMNotation2 extends DOMNotation {}
 class DOMProcessingInstruction2 extends DOMProcessingInstruction {}
 class DOMNode2 extends DOMNode {}
 
-/* IMPOSSIBLE TO DATE - ONLY THEORETICAL CODE */
-
 class DOMNodeList2 extends DOMNodeList {
 
+	/**
+	 * Retrieves a node specified by index within the DOMNodeList object.
+	 * @param  int             $index
+	 * @return DOMElement|null
+	 */
 	public function item( $index ) {
 		return DOMNodeList::item( $index );
 	}
 
+	/**
+	 * Checks if the given index exists in the DOMNodeList
+	 * @param  int     $index
+	 * @return boolean
+	 */
 	public function hasIndex( $index ) {
 		return DOMNodeList::item( $index );
 	}
 
+	/**
+	 * Retrieves the first node within the DOMNodeList object.
+	 * @return DOMElement|null
+	 */
 	public function first() {
 		return DOMNodeList::item(0);
 	}
 
+	/**
+	 * Retrieves the second node within the DOMNodeList object.
+	 * @return DOMElement|null
+	 */
 	public function second() {
 		return DOMNodeList::item(1);
 	}
 
+	/**
+	 * Retrieves the last node within the DOMNodeList object.
+	 * @return DOMElement|null
+	 */
 	public function last() {
-		return $this->length - 1 > 0 ? DOMNodeList::item( $this->length - 1 ) : null;
+		return DOMNodeList::item( $this->length - 1 );
 	}
+
+	/**
+	 * Aliases of New Methods
+	 */
 
 	public function hasItem( $index ) {
 		return self::hasIndex( $index );
@@ -44,48 +66,107 @@ class DOMNodeList2 extends DOMNodeList {
 
 class DOMElement2 extends DOMElement {
 
+	/**
+	 * Creates a new DOMElement object
+	 * @param string $name         The tag name of the element. When also passing in namespaceURI, the element name may take a prefix to be associated with the URI.
+	 * @param string $value        The value of the element.
+	 * @param string $namespaceURI A namespace URI to create the element within a specific namespace.
+	 */
 	public function __construct( $name, $value = null, $namespaceURI = null ) {
 		parent::__construct( $name, $value, $namespaceURI );
 	}
 
-	public function __destruct() {
-	}
-
+	/**
+	 * [__toString description]
+	 * @return string [description]
+	 */
 	public function __toString() {
-		return $this->nodeValue;
+		return $this->outerElement();
 	}
 
+	/**
+	 * [__get description]
+	 * @param  [type] $name [description]
+	 * @return [type]       [description]
+	 */
 	public function __get( $name ) {
-
 		if ( isset( $this->$name ) ) {
 			return $this->$name;
 		}
-
 		switch ( strtolower( $name ) ) {
+			case 'href':
+				return $this->getAttribute( 'href' );
+			break;
 			case 'outerhtml':
 			case 'htmlouter':
 			case 'outer':
 			case 'out':
-				return self::outerHTML( $this );
+				return self::outerElement( $this );
 				break;
 			case 'innerhtml':
 			case 'htmlinner':
 			case 'inner':
 			case 'in':
-				return self::innerHTML( $this );
+				return self::innerElement( $this );
 				break;
 			default:
-				trigger_error( 'Undefined property: ' . __CLASS__ . '::$' . $name, E_USER_NOTICE );
+				if ( $this->hasAttribute( $name ) ) {
+					return $this->getAttribute( $name );
+				} else {
+					trigger_error( 'Undefined property: ' . __CLASS__ . '::$' . $name, E_USER_NOTICE );
+				}
 				break;
 		}
-
 	}
 
+	/**
+	 * [innerElement description]
+	 * @param  [type] $element [description]
+	 * @return [type]          [description]
+	 */
 	public function innerElement( $element = null ) {
 		$element = !is_null( $element ) ? $element : $this;
 		$dom = new DOMDocument2();
 		$result = $dom->innerElement( $element );
 		return $result;
+	}
+
+	/**
+	 * [outerElement description]
+	 * @param  [type] $element [description]
+	 * @return [type]          [description]
+	 */
+	public function outerElement( $element = null ) {
+		$element = !is_null( $element ) ? $element : $this;
+		$dom = new DOMDocument2();
+		$result = $dom->outerElement( $element );
+		return $result;
+	}
+
+	/**
+	 * [find description]
+	 * @param  [type] $selector [description]
+	 * @return [type]           [description]
+	 */
+	public function find( $selector ) {
+		$dom = new DOMDocument2();
+		$dom->appendChild( $dom->importNode( $this, true ) );
+		$result = $dom->find( $selector );
+		return $result;
+	}
+
+	public function textarea( $element = null ) {
+		$element = !is_null( $element ) ? $element : $this;
+		$result = $element->outerHTML;
+		$lines = substr_count( $result, "\x0a" );
+		$height = ( $lines + 2 ) * 20;
+		echo '<textarea style="font-family: Consolas; font-size: 14px; height: ' . $height . 'px; line-height: 20px; margin-top: 10px; tab-size: 4; width: 100%;">';
+		if ( stripos( $result, 'textarea' ) ) {
+			$result = str_ireplace( '<textarea', '<textarea', $element );
+			$result = str_ireplace( 'textarea>', 'textarea>', $element );
+		}
+		echo $result;
+		echo '</textarea>';
 	}
 
 	public function innerHTML( $element = null ) {
@@ -106,13 +187,6 @@ class DOMElement2 extends DOMElement {
 
 	public function HTMLInner( $element = null ) {
 		return self::innerElement( $element );
-	}
-
-	public function outerElement( $element = null ) {
-		$element = !is_null( $element ) ? $element : $this;
-		$dom = new DOMDocument2();
-		$result = $dom->outerElement( $element );
-		return $result;
 	}
 
 	public function outerHTML( $element = null ) {
@@ -139,8 +213,11 @@ class DOMElement2 extends DOMElement {
 
 class DOMDocument2 extends DOMDocument implements Serializable {
 
-	/* Magic Methods */
-
+	/**
+	 * Creates a new DOMDocument object
+	 * @param string $version  The version number of the document as part of the XML declaration.
+	 * @param string $encoding The encoding of the document as part of the XML declaration.
+	 */
 	public function __construct( $version = null, $encoding = null ) {
 		DOMDocument::__construct( $version, $encoding );
 		libxml_use_internal_errors( true );
@@ -149,87 +226,229 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		$this->strictErrorChecking = false;
 	}
 
+	/**
+	 * [serialize description]
+	 * @return [type] [description]
+	 */
 	public function serialize(){
 		return static::isHTML( self::saveHTML() ) ? self::saveHTML() : self::saveXML();
 	}
 
+	/**
+	 * [unserialize description]
+	 * @param  [type] $serialized [description]
+	 * @return [type]             [description]
+	 */
 	public function unserialize( $serialized ) {
 		return static::isHTML( self::saveHTML() ) ? self::loadHTML() : self::loadXML();
 	}
 
+	/**
+	 * [__toString description]
+	 * @return string [description]
+	 */
 	public function __toString() {
 		return $this->outerHTML();
 	}
 
+	/**
+	 * [__get description]
+	 * @param  [type] $name [description]
+	 * @return [type]       [description]
+	 */
+	public function __get( $name ) {
+		if ( isset( $this->$name ) ) {
+			return $this->$name;
+		}
+		switch ( strtolower( $name ) ) {
+			case 'outerhtml':
+			case 'htmlouter':
+			case 'outer':
+			case 'out':
+				return self::outerDOM( $this );
+				break;
+			case 'innerhtml':
+			case 'htmlinner':
+			case 'inner':
+			case 'in':
+				return self::innerDOM( $this );
+				break;
+			default:
+				trigger_error( 'Undefined property: ' . __CLASS__ . '::$' . $name, E_USER_NOTICE );
+				break;
+		}
+	}
+
+	/**
+	 * [c14N description]
+	 * @param  boolean $exclusive     [description]
+	 * @param  boolean $with_comments [description]
+	 * @param  [type]  $xpath         [description]
+	 * @param  [type]  $ns_prefixes   [description]
+	 * @return [type]                 [description]
+	 */
 	public function c14N( $exclusive = false, $with_comments = true, array $xpath = null, array $ns_prefixes = null ) {
 		return str_replace( '<br></br>', '<br/>', DOMDocument::c14N( $exclusive, $with_comments, $xpath, $ns_prefixes ) );
 	}
 
+	/**
+	 * [isHTML description]
+	 * @param  [type]  $filename [description]
+	 * @return boolean           [description]
+	 */
 	public static function isHTML( $filename ) {
 		return ( ( ( $DOCTYPE = substr( file_exists( $filename ) ? ltrim( file_get_contents( $filename ) ) : ltrim( $filename ), 0, 14 ) ) !== null && ( $doctype = strtolower( $DOCTYPE ) ) !== null ) && ( $doctype === '<!doctype html' || substr( $doctype, 0, 5 ) === '<html' ) ) ? true : false;
 	}
 
+	/**
+	 * [isXML description]
+	 * @param  [type]  $filename [description]
+	 * @return boolean           [description]
+	 */
 	public static function isXML( $filename ) {
 		return true;
 	}
 
+	/**
+	 * [createAttribute description]
+	 * @param  [type] $name [description]
+	 * @return [type]       [description]
+	 */
 	public function createAttribute( $name ) {
 		return DOMDocument::createAttribute( $name );
 	}
 
+	/**
+	 * [createAttributeNS description]
+	 * @param  [type] $namespaceURI  [description]
+	 * @param  [type] $qualifiedName [description]
+	 * @return [type]                [description]
+	 */
 	public function createAttributeNS( $namespaceURI, $qualifiedName ) {
 		return DOMDocument::createAttributeNS( $namespaceURI, $qualifiedName );
 	}
 
+	/**
+	 * [createCDATASection description]
+	 * @param  [type] $data [description]
+	 * @return [type]       [description]
+	 */
 	public function createCDATASection( $data ) {
 		return DOMDocument::createCDATASection( $data );
 	}
 
+	/**
+	 * [createComment description]
+	 * @param  [type] $data [description]
+	 * @return [type]       [description]
+	 */
 	public function createComment( $data ) {
 		return DOMDocument::createComment( $data );
 	}
 
+	/**
+	 * [createDocumentFragment description]
+	 * @return [type] [description]
+	 */
 	public function createDocumentFragment() {
 		return ( class_exists( 'DOMDocumentFragment2' ) ) ? new DOMDocumentFragment2() : DOMDocument::createDocumentFragment();
 	}
 
+	/**
+	 * [createElement description]
+	 * @param  [type] $name  [description]
+	 * @param  [type] $value [description]
+	 * @return [type]        [description]
+	 */
 	public function createElement( $name, $value = null ) {
 		return ( $value === null ) ? DOMDocument::createElement( $name ) : DOMDocument::createElement( $name, $value );
 	}
 
+	/**
+	 * [createElementNS description]
+	 * @param  [type] $namespaceURI  [description]
+	 * @param  [type] $qualifiedName [description]
+	 * @param  [type] $value         [description]
+	 * @return [type]                [description]
+	 */
 	public function createElementNS( $namespaceURI, $qualifiedName, $value = null ) {
 		return ( $value === null ) ? DOMDocument::createElementNS( $namespaceURI, $qualifiedName ) : DOMDocument::createElementNS( $namespaceURI, $qualifiedName, $value );
 	}
 
+	/**
+	 * [createEntityReference description]
+	 * @param  [type] $name [description]
+	 * @return [type]       [description]
+	 */
 	public function createEntityReference( $name ){
 		return DOMDocument::createEntityReference( $name );
 	}
 
+	/**
+	 * [createProcessingInstruction description]
+	 * @param  [type] $target [description]
+	 * @param  [type] $data   [description]
+	 * @return [type]         [description]
+	 */
 	public function createProcessingInstruction( $target, $data = null ) {
 		return ( $data === null ) ? DOMDocument::createProcessingInstruction( $target ) : DOMDocument::createProcessingInstruction( $target, $data );
 	}
 
+	/**
+	 * [createTextNode description]
+	 * @param  [type] $content [description]
+	 * @return [type]          [description]
+	 */
 	public function createTextNode( $content ) {
 		return DOMDocument::createTextNode( $content );
 	}
 
+	/**
+	 * [getElementById description]
+	 * @param  [type] $elementId [description]
+	 * @return [type]            [description]
+	 */
 	public function getElementById( $elementId ) {
 		return DOMDocument::getElementById( $elementId );
 	}
 
+	/**
+	 * [getElementsByTagName description]
+	 * @param  [type] $name [description]
+	 * @return [type]       [description]
+	 */
 	public function getElementsByTagName( $name ) {
 		return DOMDocument::getElementsByTagName( $name );
 	}
 
+	/**
+	 * [getElementsByTagNameNS description]
+	 * @param  [type] $namespaceURI [description]
+	 * @param  [type] $localName    [description]
+	 * @return [type]               [description]
+	 */
 	public function getElementsByTagNameNS( $namespaceURI, $localName ) {
 		return DOMDocument::getElementsByTagNameNS( $namespaceURI, $localName );
 	}
 
+	/**
+	 * [importNode description]
+	 * @param  DOMNode $importedNode [description]
+	 * @param  [type]  $deep         [description]
+	 * @return [type]                [description]
+	 */
 	public function importNode( DOMNode $importedNode, $deep = null ) {
 		return ( $deep === null ) ? DOMDocument::importNode( $importedNode ) : DOMDocument::importNode( $importedNode, $deep );
 	}
 
+	/**
+	 * [load description]
+	 * @param  [type]  $filename [description]
+	 * @param  integer $options  [description]
+	 * @return [type]            [description]
+	 */
 	public function load( $filename, $options = 0 ) {
+
 		if ( static::isHTML( $filename ) ) {
 			if ( file_exists( $filename ) ) {
 				return ( $options === 0 ) ? self::loadHTMLFile( $filename ) : self::loadHTMLFile( $filename, $options );
@@ -241,51 +460,115 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		} else {
 			return ( $options === 0 ) ? DOMDocument::load( $filename ) : DOMDocument::load( $filename, $options );
 		}
+
 	}
 
+	/**
+	 * [loadHTML description]
+	 * @param  [type]  $source  [description]
+	 * @param  integer $options [description]
+	 * @return [type]           [description]
+	 */
 	public function loadHTML( $source, $options = 0 ) {
+
 		if ( file_exists( $source ) ) {
 			return ( $options === 0 ) ? self::loadHTMLFile( $source ) : self::loadHTMLFile( $source, $options );
 		}
+
 		return ( $options === 0 ) ? DOMDocument::loadHTML( $source ) : DOMDocument::loadHTML( $source, $options );
+
 	}
 
+	/**
+	 * [loadHTMLFile description]
+	 * @param  [type]  $filename [description]
+	 * @param  integer $options  [description]
+	 * @return [type]            [description]
+	 */
 	public function loadHTMLFile( $filename, $options = 0 ) {
 		return ( ( libxml_use_internal_errors( true ) !== null ) && $options === 0 ) ? DOMDocument::loadHTMLFile( $filename ) : DOMDocument::loadHTMLFile( $filename, $options );
 	}
 
+	/**
+	 * [loadXML description]
+	 * @param  [type]  $source  [description]
+	 * @param  integer $options [description]
+	 * @return [type]           [description]
+	 */
 	public function loadXML( $source, $options = 0 ) {
 		return ( $options === null ) ? DOMDocument::loadXML( $source ) : DOMDocument::loadXML( $source, $options );
 	}
 
+	/**
+	 * [normalizeDocument description]
+	 * @return [type] [description]
+	 */
 	public function normalizeDocument() {
 		DOMDocument::normalizeDocument();
 	}
 
+	/**
+	 * [registerNodeClass description]
+	 * @param  [type] $baseclass     [description]
+	 * @param  [type] $extendedclass [description]
+	 * @return [type]                [description]
+	 */
 	public function registerNodeClass( $baseclass, $extendedclass ) {
 		return DOMDocument::registerNodeClass( $baseclass, $extendedclass );
 	}
 
+	/**
+	 * [relaxNGValidate description]
+	 * @param  [type] $filename [description]
+	 * @return [type]           [description]
+	 */
 	public function relaxNGValidate( $filename ) {
 		return DOMDocument::relaxNGValidate( $filename );
 	}
 
+	/**
+	 * [relaxNGValidateSource description]
+	 * @param  [type] $source [description]
+	 * @return [type]         [description]
+	 */
 	public function relaxNGValidateSource( $source ) {
 		return DOMDocument::relaxNGValidateSource( $source );
 	}
 
+	/**
+	 * [save description]
+	 * @param  [type] $filename [description]
+	 * @param  [type] $options  [description]
+	 * @return [type]           [description]
+	 */
 	public function save( $filename, $options = null ) {
 		return ( $options === null ) ? DOMDocument::save( $filename ) : DOMDocument::save( $filename, $options );
 	}
 
+	/**
+	 * [saveHTML description]
+	 * @param  [type] $node [description]
+	 * @return [type]       [description]
+	 */
 	public function saveHTML( DOMNode $node = null ) {
 		return ( $node === null ) ? DOMDocument::saveHTML() : DOMDocument::saveHTML( $node );
 	}
 
+	/**
+	 * [saveHTMLFile description]
+	 * @param  [type] $filename [description]
+	 * @return [type]           [description]
+	 */
 	public function saveHTMLFile( $filename ) {
 		return DOMDocument::saveHTMLFile( $filename );
 	}
 
+	/**
+	 * [saveXML description]
+	 * @param  [type] $node    [description]
+	 * @param  [type] $options [description]
+	 * @return [type]          [description]
+	 */
 	public function saveXML( DOMNode $node = null, $options = null ) {
 		if ( $options === null ) {
 			return ( $node === null ) ? DOMDocument::saveXML() : DOMDocument::saveXML( $node );
@@ -294,28 +577,57 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		}
 	}
 
+	/**
+	 * [schemaValidate description]
+	 * @param  [type] $filename [description]
+	 * @param  [type] $flags    [description]
+	 * @return [type]           [description]
+	 */
 	public function schemaValidate( $filename, $flags = null ) {
 		return ( $flags === null ) ? DOMDocument::schemaValidate( $filename ) : DOMDocument::schemaValidate( $filename, $flags );
 	}
 
+	/**
+	 * [schemaValidateSource description]
+	 * @param  [type] $source [description]
+	 * @param  [type] $flags  [description]
+	 * @return [type]         [description]
+	 */
 	public function schemaValidateSource( $source, $flags = null ) {
 		return ( $flags === null ) ? DOMDocument::schemaValidateSource( $source ) : DOMDocument::schemaValidateSource( $source, $flags );
 	}
 
+	/**
+	 * [validate description]
+	 * @return [type] [description]
+	 */
 	public function validate() {
 		return DOMDocument::validate();
 	}
 
+	/**
+	 * [xinclude description]
+	 * @param  [type] $options [description]
+	 * @return [type]          [description]
+	 */
 	public function xinclude( $options = null ) {
 		return ( $options === null ) ? DOMDocument::xinclude() : DOMDocument::xinclude( $options );
 	}
 
+	/**
+	 * [selectorToGroups description]
+	 * @param  [type] $selector [description]
+	 * @return [type]           [description]
+	 */
 	public static function selectorToGroups( $selector ) {
 		return ( strpos( $selector, ',' ) !== false ) ? static::selectorToGroupsMultiple( $selector ) : static::selectorToGroupsSingle( $selector );
 	}
 
-	/* Todo */
-
+	/**
+	 * [selectorToGroupsMultiple description]
+	 * @param  [type] $selector [description]
+	 * @return [type]           [description]
+	 */
 	public static function selectorToGroupsMultiple( $selector ) {
 		$selector = trim( $selector );
 		$is_tag = false;
@@ -430,6 +742,11 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $groups;
 	}
 
+	/**
+	 * [selectorToGroupsSingle description]
+	 * @param  [type] $selector [description]
+	 * @return [type]           [description]
+	 */
 	public static function selectorToGroupsSingle( $selector ) {
 		$selector = trim( $selector );
 		$is_tag = false;
@@ -544,20 +861,22 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $groups;
 	}
 
-	/* Dom List Tag Attribute Value */
-
+	/**
+	 * [domListTagAttrValue description]
+	 * @param  [type] $dom   [description]
+	 * @param  [type] $tag   [description]
+	 * @param  [type] $attr  [description]
+	 * @param  [type] $value [description]
+	 * @return [type]        [description]
+	 */
 	public static function domListTagAttrValue( $dom, $tag, $attr, $value ) {
-
 		$list = $dom->getElementsByTagName( $tag );
-
 		if ( $list->length === 0 ) {
 			return $list;
 		}
-
 		$tmp = new DOMDocument2();
 		$i = 0;
 		$j = 0;
-
 		for (;;) {
 			$el = $list->item( $i );
 			if ( $el === null ) {
@@ -579,22 +898,23 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 			}
 			$i++;
 		}
-
 		return $tmp->childNodes;
-
 	}
 
+	/**
+	 * [domListTagAttr description]
+	 * @param  [type] $dom  [description]
+	 * @param  [type] $tag  [description]
+	 * @param  [type] $attr [description]
+	 * @return [type]       [description]
+	 */
 	public static function domListTagAttr( $dom, $tag, $attr ) {
-
 		$list = $dom->getElementsByTagName( $tag );
-
 		if ( $list->length === 0 ) {
 			return $list;
 		}
-
 		$tmp = new DOMDocument2();
 		$i = 0;
-
 		for (;;) {
 			$el = $list->item( $i );
 			if ( $el === null ) {
@@ -607,30 +927,34 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 			$tmp->appendChild( $tmp->importNode( $el, true ) );
 			$i++;
 		}
-
 		return $tmp->childNodes;
-
 	}
 
+	/**
+	 * [domListTag description]
+	 * @param  [type] $dom [description]
+	 * @param  [type] $tag [description]
+	 * @return [type]      [description]
+	 */
 	public static function domListTag( $dom, $tag ) {
-
 		$list = $dom->getElementsByTagName( $tag );
-
 		if ( $list->length === 0 ) {
 			return $list;
 		}
-
 		return $list;
-
 	}
 
-	/* Node List Tag Attribute Value */
-
+	/**
+	 * [nodeListTagAttrValue description]
+	 * @param  [type] $list  [description]
+	 * @param  [type] $tag   [description]
+	 * @param  [type] $attr  [description]
+	 * @param  [type] $value [description]
+	 * @return [type]        [description]
+	 */
 	public static function nodeListTagAttrValue( $list, $tag, $attr, $value ) {
-
 		$dom = new DOMDocument2();
 		$i = 0;
-
 		for (;;) {
 			$el = $list->item( $i );
 			if ( $el === null ) {
@@ -665,16 +989,19 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 			}
 			$i++;
 		}
-
 		return $dom->childNodes;
-
 	}
 
+	/**
+	 * [nodeListTagAttr description]
+	 * @param  [type] $list [description]
+	 * @param  [type] $tag  [description]
+	 * @param  [type] $attr [description]
+	 * @return [type]       [description]
+	 */
 	public static function nodeListTagAttr( $list, $tag, $attr ) {
-
 		$dom = new DOMDocument2();
 		$i = 0;
-
 		for (;;) {
 			$el = $list->item( $i );
 			if ( $el === null ) {
@@ -700,16 +1027,18 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 			}
 			$i++;
 		}
-
 		return $dom->childNodes;
-
 	}
 
+	/**
+	 * [nodeListTag description]
+	 * @param  [type] $list [description]
+	 * @param  [type] $tag  [description]
+	 * @return [type]       [description]
+	 */
 	public static function nodeListTag( $list, $tag ) {
-
 		$dom = new DOMDocument2();
 		$i = 0;
-
 		for (;;) {
 			$el = $list->item( $i );
 			if ( $el === null ) {
@@ -731,11 +1060,14 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 			}
 			$i++;
 		}
-
 		return $dom->childNodes;
-
 	}
 
+	/**
+	 * [groupsToNodeList description]
+	 * @param  [type] $groups [description]
+	 * @return [type]         [description]
+	 */
 	protected function groupsToNodeList( $groups ) {
 		$nodes = new DOMNodeList();
 		foreach ( $groups as $groupk => $groupv ) {
@@ -788,6 +1120,11 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $nodes;
 	}
 
+	/**
+	 * [outerString description]
+	 * @param  [type] $value [description]
+	 * @return [type]        [description]
+	 */
 	public function outerString( $value = null ) {
 		$value = !is_null( $value ) ? $value : $this;
 		if ( is_string( $value ) ) {
@@ -800,6 +1137,11 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $value;
 	}
 
+	/**
+	 * [outerDOM description]
+	 * @param  [type] $dom [description]
+	 * @return [type]      [description]
+	 */
 	public function outerDOM( $dom = null ) {
 		$dom = !is_null( $dom ) ? $dom : $this;
 		if ( $dom instanceof DOMDocument ) {
@@ -818,6 +1160,11 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $dom;
 	}
 
+	/**
+	 * [outerElement description]
+	 * @param  [type] $node [description]
+	 * @return [type]       [description]
+	 */
 	public function outerElement( $node = null ) {
 		$node = !is_null( $node ) ? $node : $this;
 		if ( $node instanceof DOMElement ) {
@@ -834,6 +1181,11 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $node;
 	}
 
+	/**
+	 * [outerHTML description]
+	 * @param  [type] $node [description]
+	 * @return [type]       [description]
+	 */
 	public function outerHTML( $node = null ) {
 		$node = !is_null( $node ) ? $node : $this;
 		if ( $node instanceof DOMElement ) {
@@ -846,6 +1198,11 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $node;
 	}
 
+	/**
+	 * [innerString description]
+	 * @param  [type] $value [description]
+	 * @return [type]        [description]
+	 */
 	public function innerString( $value = null ) {
 		$value = !is_null( $value ) ? $value : $this;
 		if ( is_string( $value ) ) {
@@ -865,6 +1222,11 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $value;
 	}
 
+	/**
+	 * [innerDOM description]
+	 * @param  [type] $dom [description]
+	 * @return [type]      [description]
+	 */
 	public function innerDOM( $dom = null ) {
 		$dom = !is_null( $dom ) ? $dom : $this;
 		if ( $dom instanceof DOMDocument ) {
@@ -884,6 +1246,11 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $dom;
 	}
 
+	/**
+	 * [innerElement description]
+	 * @param  [type] $node [description]
+	 * @return [type]       [description]
+	 */
 	public function innerElement( $node = null ) {
 		$node = !is_null( $node ) ? $node : $this;
 		if ( $node instanceof DOMElement ) {
@@ -898,6 +1265,11 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $node;
 	}
 
+	/**
+	 * [innerHTML description]
+	 * @param  [type] $node [description]
+	 * @return [type]       [description]
+	 */
 	public function innerHTML( $node = null ) {
 		$node = !is_null( $node ) ? $node : $this;
 		if ( $node instanceof DOMElement ) {
@@ -910,25 +1282,53 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return $node;
 	}
 
-	/* New Methods */
-
+	/**
+	 * [getElementsByClassName description]
+	 * @param  [type] $class [description]
+	 * @return [type]        [description]
+	 */
 	public function getElementsByClassName( $class ) {
+		/**
+		 * First = *
+		 * Second = has attribute class
+		 * Third = have value of class
+		 */
 	}
 
+	/**
+	 * [getElementsByName description]
+	 * @param  [type] $name [description]
+	 * @return [type]       [description]
+	 */
 	public function getElementsByName( $name ) {
+		/**
+		 * First = *
+		 * Second = has attribute name
+		 * Third = have value of name
+		 */
 	}
 
-	/* New Methods */
-
+	/**
+	 * [querySelector description]
+	 * @param  [type] $selector [description]
+	 * @return [type]           [description]
+	 */
 	public function querySelector( $selector ) {
 		return ( ( $nodes = $this->querySelectorAll( $selector ) ) ) ? $nodes[0] : new DOMNodeList();
 	}
 
+	/**
+	 * [querySelectorAll description]
+	 * @param  [type] $selector [description]
+	 * @return [type]           [description]
+	 */
 	public function querySelectorAll( $selector ) {
 		return $this->groupsToNodeList( static::selectorToGroups( $selector ) );
 	}
 
-	/* getElementsByTagName */
+	/**
+	 * Aliases of getElementsByTagName
+	 */
 
 	public function getElementByTagName( $name ) {
 		return self::getElementsByTagName( $name );
@@ -942,7 +1342,17 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return self::getElementsByTagName( $name );
 	}
 
-	/* loadHTMLFile */
+	public function getByTag( $name ) {
+		return self::getElementsByTagName( $name );
+	}
+
+	public function getTag( $name ) {
+		return self::getElementsByTagName( $name );
+	}
+
+	/**
+	 * Aliases of loadHTMLFile
+	 */
 
 	public function loadFileHTML( $filename, $options = 0 ) {
 		return self::loadHTMLFile( $filename, $options );
@@ -957,7 +1367,6 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 	}
 
 	public function loadFile( $filename, $options = 0 ) {
-		//self::registerNodeClass( "DOMElement", "DOMElement2" );
 		return self::loadHTMLFile( $filename, $options );
 	}
 
@@ -965,7 +1374,9 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 		return self::loadHTMLFile( $filename, $options );
 	}
 
-	/* New Methods */
+	/**
+	 * Aliases of New Methods
+	 */
 
 	public function outer( $value = null ) {
 		return self::outerHTML( $value );
