@@ -465,13 +465,13 @@ class DOMDocument2 extends DOMDocument implements Serializable {
 
 	/**
 	 * [loadHTML description]
-	 * @param  [type]  $source  [description]
-	 * @param  integer $options [description]
+	 * @param  string  $source  File or contents
+	 * @param  integer $options Flags
 	 * @return [type]           [description]
 	 */
 	public function loadHTML( $source, $options = 0 ) {
 
-		if ( file_exists( $source ) ) {
+		if ( is_string( $source ) && strlen( $source ) <= 4096 && file_exists( $source ) ) {
 			return ( $options === 0 ) ? self::loadHTMLFile( $source ) : self::loadHTMLFile( $source, $options );
 		}
 
