@@ -160,16 +160,14 @@ class BingTranslate {
 
 		$text = $this->text;
 
-		if ( strpos( $text, "\x0d" ) !== false || strpos( $text, "\x0a" ) !== false ) {
-			#return false;
+		if ( defined( 'ABSPATH' ) ) {
+			$cache_folder = ABSPATH . 'wp-content/cache/class-bing-translate/response/';
+		} else {
+			$cache_folder = $_SERVER['DOCUMENT_ROOT'] . '/cache/classes/' . __CLASS__ . '/response/';
 		}
 
-		if ( defined( 'ABSPATH' ) ) {
-			$cache_folder = ABSPATH . 'wp-content/cache/class-bing-translate/bing/';
-		} else {
-			$cache_folder = $_SERVER['DOCUMENT_ROOT'] . '/cache/classes/' . __CLASS__ . '/';
-		}
-		
+		$cache_folder .= $this->from . DIRECTORY_SEPARATOR . $this->to . DIRECTORY_SEPARATOR;
+
 		$cache_file = $cache_folder . md5( $text );
 		$cache_files[] = $cache_file;
 
