@@ -1,7 +1,5 @@
 <?php
 
-<?php
-
 class HashTab {
 
 	/**
@@ -309,7 +307,5 @@ Whirlpool: %s
 	}
 
 }
-
-?>
 
 ?>
