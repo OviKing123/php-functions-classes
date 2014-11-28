@@ -5,7 +5,50 @@ class ImdbHttp {}
 class ImdbRaw {}
 class ImdbNormal {}
 class ImdbIndex {}
-class ImdbInfo {}
+
+class ImdbInfo {
+
+	public function hasOriginal() {
+		return isset( $this->original_title ) || isset( $this->original_title_2 ) || isset( $this->original_title_3 ) || isset( $this->original_title_4 );
+	}
+
+	public function hasEnglish() {
+		return isset( $this->english_title ) || isset( $this->english_title_2 ) || isset( $this->english_title_3 ) || isset( $this->english_title_4 );
+	}
+
+	public function hasBrazil() {
+		return isset( $this->brazil_title ) || isset( $this->brazil_title_2 ) || isset( $this->brazil_title_3 ) || isset( $this->brazil_title_4 );
+	}
+
+	public function hasPortugal() {
+		return isset( $this->portugal_title ) || isset( $this->portugal_title_2 ) || isset( $this->portugal_title_3 ) || isset( $this->portugal_title_4 );
+	}
+
+	public function hasBrasil() {
+		return $this->hasBrazil();
+	}
+
+	public function getOriginal() {
+		return $this->hasOriginal() ? $this->original_title : null;
+	}
+
+	public function getEnglish() {
+		return $this->hasEnglish() ? $this->english_title : null;
+	}
+
+	public function getBrazil() {
+		return $this->hasBrazil() ? $this->brazil_title : null;
+	}
+
+	public function getPortugal() {
+		return $this->hasPortugal() ? $this->portugal_title : null;
+	}
+
+	public function getBrasil() {
+		return $this->getBrazil();
+	}
+
+}
 
 class Imdb {
 
@@ -428,8 +471,6 @@ class Imdb {
 
 		$this->_rawToNormal();
 
-		#var_dump( $this->normal->index );
-
 		return true;
 
 	}
@@ -441,8 +482,15 @@ class Imdb {
 			return false;
 		}
 
-		$this->_rawIndexToNormal();
-		$this->_rawInfoToNormal();
+		if ( !$this->_rawIndexToNormal() ) {
+			$this->_setError( 'Protected_RawIndexToNormal_False' );
+			return false;
+		}
+
+		if ( !$this->_rawInfoToNormal() ) {
+			$this->_setError( 'Protected_RawInfoToNormal_False' );
+			return false;
+		}
 
 	}
 
@@ -461,11 +509,18 @@ class Imdb {
 		$this->normal->index->extra_title = isset( $this->raw->index->extra_title ) ? $this->raw->index->extra_title : null;
 		$this->normal->index->duration = isset( $this->raw->index->duration ) ? $this->raw->index->duration : null;
 		$this->normal->index->genres = isset( $this->raw->index->genres ) ? $this->raw->index->genres : null;
+		$this->normal->index->genre = isset( $this->raw->index->genres ) ? $this->raw->index->genres : null;
+		$this->normal->index->genres_pt = isset( $this->raw->index->genres ) ? $this->raw->index->genres : null;
+		$this->normal->index->genre_pt = isset( $this->raw->index->genres ) ? $this->raw->index->genres : null;
+		$this->normal->index->years = isset( $this->raw->index->year ) ? $this->raw->index->year : null;
 		$this->normal->index->year = isset( $this->raw->index->year ) ? $this->raw->index->year : null;
+		$this->normal->index->release_years = isset( $this->raw->index->release_year ) ? $this->raw->index->release_year : null;
 		$this->normal->index->release_year = isset( $this->raw->index->release_year ) ? $this->raw->index->release_year : null;
+		$this->normal->index->release_dates = isset( $this->raw->index->release_date ) ? $this->raw->index->release_date : null;
 		$this->normal->index->release_date = isset( $this->raw->index->release_date ) ? $this->raw->index->release_date : null;
 		$this->normal->index->release_date_country = isset( $this->raw->index->release_date_country ) ? $this->raw->index->release_date_country : null;
 		$this->normal->index->rating = isset( $this->raw->index->rating ) ? $this->raw->index->rating : null;
+		$this->normal->index->descriptions = isset( $this->raw->index->description ) ? $this->raw->index->description : null;
 		$this->normal->index->description = isset( $this->raw->index->description ) ? $this->raw->index->description : null;
 		$this->normal->index->directors = isset( $this->raw->index->image ) ? $this->raw->index->directors : null;
 		$this->normal->index->director = isset( $this->raw->index->director ) ? $this->raw->index->director : null;
@@ -474,19 +529,121 @@ class Imdb {
 		$this->normal->index->actors = isset( $this->raw->index->actors ) ? $this->raw->index->actors : null;
 		$this->normal->index->actor = isset( $this->raw->index->actor ) ? $this->raw->index->actor : null;
 
-		var_dump( $this->normal->index );
-		return false;
+		/**
+		 * 
+		 */
+
+		if ( isset( $this->normal->index->document_title ) ) {
+			if ( isset( $this->normal->index->document_title['jp-JP'] ) ) {
+				if ( isset( $this->normal->index->document_title['pt-BR'] ) && $this->normal->index->document_title['jp-JP'] === $this->normal->index->document_title['pt-BR'] ) {
+					$this->normal->index->document_title['jp-JP'] = $this->normal->index->document_title['en-US'];
+				} elseif ( isset( $this->normal->index->document_title['pt-PT'] ) && $this->normal->index->document_title['jp-JP'] === $this->normal->index->document_title['pt-PT'] ) {
+					$this->normal->index->document_title['jp-JP'] = $this->normal->index->document_title['en-US'];
+				}
+			}
+		}
+
+		$this->normal->index->image = isset( $this->normal->index->image ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->image ) ) ) ) !== false ? $tmp : null ) : null;
+		$this->normal->index->image_full = isset( $this->normal->index->image_full ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->image_full ) ) ) ) !== false ? $tmp : null ) : null;
+		$this->normal->index->image_320 = isset( $this->normal->index->image_320 ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->image_320 ) ) ) ) !== false ? $tmp : null ) : null;
+
+		if ( isset( $this->normal->index->h1_title ) ) {
+			if ( isset( $this->normal->index->h1_title['jp-JP'] ) ) {
+				if ( isset( $this->normal->index->h1_title['pt-BR'] ) && $this->normal->index->h1_title['jp-JP'] === $this->normal->index->h1_title['pt-BR'] ) {
+					$this->normal->index->h1_title['jp-JP'] = $this->normal->index->h1_title['en-US'];
+				} elseif ( isset( $this->normal->index->h1_title['pt-PT'] ) && $this->normal->index->h1_title['jp-JP'] === $this->normal->index->h1_title['pt-PT'] ) {
+					$this->normal->index->h1_title['jp-JP'] = $this->normal->index->h1_title['en-US'];
+				}
+			}
+		}
+
+		$this->normal->index->extra_title = isset( $this->normal->index->extra_title ) ? ( ( $tmp = array_filter( array_unique( $this->normal->index->extra_title ) ) ) !== null && !empty( $tmp ) ? $tmp : null ) : null;
+		$this->normal->index->duration = isset( $this->normal->index->duration ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->duration ) ) ) ) !== false ? $tmp : null ) : null;
+		$this->normal->index->genres = isset( $this->normal->index->genres ) ? $this->_unique( $this->normal->index->genres ) : null;
+		$this->normal->index->genre = isset( $this->normal->index->genres ) ? ( ( $tmp = current( $this->normal->index->genres ) ) !== false ? $tmp : null ) : null;
+		$this->normal->index->genres_pt = isset( $this->normal->index->genres ) ? $this->_convertGenresToGeneros( $this->normal->index->genres ) : null;
+		$this->normal->index->genre_pt = isset( $this->normal->index->genres_pt ) ? ( ( $tmp = current( $this->normal->index->genres_pt ) ) !== false ? $this->_convertGenreToGenero( $tmp ) : null ) : null;
+		$this->normal->index->years = isset( $this->normal->index->years ) ? array_filter( array_unique( $this->normal->index->years ) ) : null;
+		$this->normal->index->year = isset( $this->normal->index->year ) ? $this->_unique( $this->normal->index->year ) : null;
+		$this->normal->index->release_years = isset( $this->normal->index->release_years ) ? array_filter( array_unique( $this->normal->index->release_years ) ) : null;
+		$this->normal->index->release_year = isset( $this->normal->index->release_year ) ? $this->_unique( $this->normal->index->release_year ) : null;
+		$this->normal->index->release_dates = isset( $this->normal->index->release_dates ) ? $this->_unique( $this->normal->index->release_dates ) : null;
+		$this->normal->index->rating = isset( $this->normal->index->rating ) ? array_filter( array_unique( $this->normal->index->rating ) ) : null;
+		$this->normal->index->descriptions = isset( $this->normal->index->description ) ? array_filter( array_unique( $this->normal->index->description ) ) : null;
+		$this->normal->index->description = isset( $this->normal->index->description ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->description ) ) ) ) !== false ? $tmp : null ) : null;
+		$this->normal->index->directors = isset( $this->normal->index->directors ) ? array_unique( $this->_unique( $this->normal->index->directors ) ) : null;
+		$this->normal->index->director = isset( $this->normal->index->director ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->director ) ) ) ) !== false ? $tmp : null ) : null;
+		$this->normal->index->writers = isset( $this->normal->index->writers ) ? array_unique( $this->_unique( $this->normal->index->writers ) ) : null;
+		$this->normal->index->writer = isset( $this->normal->index->writer ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->writer ) ) ) ) !== false ? $tmp : null ) : null;
+		$this->normal->index->actors = isset( $this->normal->index->actors ) ? $this->_unique( $this->normal->index->actors ) : null;
+		$this->normal->index->actor = isset( $this->normal->index->actor ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->actor ) ) ) ) !== false ? $tmp : null ) : null;
+
+		if ( isset( $this->normal->index->rating ) && $this->normal->index->rating && is_array( $this->normal->index->rating ) && count( $this->normal->index->rating ) === 2 ) {
+
+			$current = current( $this->normal->index->rating );
+			$next = next( $this->normal->index->rating );
+
+			if ( strpos( $current, '.' ) !== false ) {
+				$this->normal->index->rating = $current;
+			} elseif ( strpos( $next, '.' ) !== false ) {
+				$this->normal->index->rating = $next;
+			} else {
+				$this->normal->index->rating = $current;
+			}
+
+		}
 
 		return true;
 
 	}
 
+	protected function _unique( $array, $force = false ) {
+
+		$new = array_map( 'unserialize', array_unique( array_map( 'serialize', $array ) ) );
+
+		if ( count( $new ) === 1 ) {
+			return $force ? $new : current( $new );
+		}
+
+		return $new;
+
+	}
+
 	protected function _rawInfoToNormal() {
 
-		if ( !isset( $this->raw->index ) ) {
-			$this->_setError( 'Protected_RawIndexToNormal_Raw_Info_Undefined' );
+		if ( !isset( $this->raw->info ) ) {
+			$this->_setError( 'Protected_RawInfoToNormal_This_Raw_Info_Undefined' );
 			return false;
 		}
+
+		$this->normal->info->original_title = isset( $this->raw->info->original_title ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->original_title ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->english_title = isset( $this->raw->info->english_title ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->english_title ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->brazil_title = isset( $this->raw->info->brazil_title ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->brazil_title ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->portugal_title = isset( $this->raw->info->portugal_title ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->portugal_title ) ) ) ) === false ? null : $tmp ) : null;
+
+		$this->normal->info->original_title_2 = isset( $this->raw->info->original_title_2 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->original_title_2 ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->english_title_2 = isset( $this->raw->info->english_title_2 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->english_title_2 ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->brazil_title_2 = isset( $this->raw->info->brazil_title_2 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->brazil_title_2 ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->portugal_title_2 = isset( $this->raw->info->portugal_title_2 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->portugal_title_2 ) ) ) ) === false ? null : $tmp ) : null;
+
+		$this->normal->info->original_title_3 = isset( $this->raw->info->original_title_3 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->original_title_3 ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->english_title_3 = isset( $this->raw->info->english_title_3 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->english_title_3 ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->brazil_title_3 = isset( $this->raw->info->brazil_title_3 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->brazil_title_3 ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->portugal_title_3 = isset( $this->raw->info->portugal_title_3 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->portugal_title_3 ) ) ) ) === false ? null : $tmp ) : null;
+
+		$this->normal->info->original_title_4 = isset( $this->raw->info->original_title_4 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->original_title_4 ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->english_title_4 = isset( $this->raw->info->english_title_4 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->english_title_4 ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->brazil_title_4 = isset( $this->raw->info->brazil_title_4 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->brazil_title_4 ) ) ) ) === false ? null : $tmp ) : null;
+		$this->normal->info->portugal_title_4 = isset( $this->raw->info->portugal_title_4 ) ? ( ( $tmp = current( array_filter( array_unique( $this->raw->info->portugal_title_4 ) ) ) ) === false ? null : $tmp ) : null;
+
+		$this->normal->info->original_title = isset( $this->normal->info->original_title ) ? $this->normal->info->original_title : ( $tmp = current( $this->normal->index->h1_title ) ) !== false ? $tmp : ( $tmp = current( $this->normal->index->document_title ) ) !== false ? $tmp : null;
+		$this->normal->info->english_title = isset( $this->normal->info->english_title ) ? $this->normal->info->english_title : ( isset( $this->normal->info->original_title ) ? $this->normal->info->original_title : null );
+
+		$this->normal->info->titles = isset( $this->raw->info->titles ) ? $this->_unique( $this->raw->info->titles ) : null;
+		$this->normal->info->titles_all = array_merge( $this->normal->info->titles, array_filter( array( 'Original Title (Original Title)' => $this->normal->info->original_title, 'Brazil' => $this->normal->info->brazil_title, 'Portugal' => $this->normal->info->portugal_title ) ) );
+
+		ksort( $this->normal->info->titles );
+		ksort( $this->normal->info->titles_all );
 
 		return true;
 
@@ -593,7 +750,7 @@ class Imdb {
 	 * Helper Functions
 	 */
 
-	function _convertGenresToGeneros( $genres, $sort = false ) {
+	public function _convertGenresToGeneros( $genres, $sort = false ) {
 
 		$generos = $genres;
 
@@ -628,6 +785,34 @@ class Imdb {
 		$sort && sort( $generos );
 
 		return $generos;
+
+	}
+
+	public function _convertGenreToGenero( $genre ) {
+
+		switch ( strtolower( $genre ) ) {
+			case 'action': $value = 'Ação'; break;
+			case 'adventure': $value = 'Aventura'; break;
+			case 'animation': $value = 'Animação'; break;
+			case 'biography': $value = 'Biografia'; break;
+			case 'comedy': $value = 'Comédia'; break;
+			case 'documentary': $value = 'Documentário'; break;
+			case 'family': $value = 'Família'; break;
+			case 'fantasy': $value = 'Fantasia'; break;
+			case 'history': $value = 'História'; break;
+			case 'horror': $value = 'Terror'; break;
+			case 'music': $value = 'Musical'; break;
+			case 'mystery': $value = 'Mistério'; break;
+			case 'sci-fi': $value = 'Ficção'; break;
+			case 'sport': $value = 'Esportes'; break;
+			case 'sports': $value = 'Esportes'; break;
+			case 'thriller': $value = 'Suspense'; break;
+			case 'war': $value = 'Guerra'; break;
+			case 'western': $value = 'Faroeste'; break;
+			default: $value = ucfirst( strtolower( $genre ) ); break;
+		}
+
+		return $value;
 
 	}
 
@@ -674,8 +859,8 @@ class Imdb {
 			return false;
 		}
 
-		$imdb_page_index_document_title_matches[$this->imdb_language][1][0] = trim( preg_replace( '/^([^\x20]+[^\x28\x29]+[^\x20\]+[^\x20]+) \((?:TV Mini\-Series\x20|TV Movie\x20|TV Episode\x20|TV Short\x20|Video\x20)?(?:201[0-5]|200[0-9]|19[6-9][0-9])\) \- IMDb$/', '$1', $imdb_page_index_document_title_matches[$this->imdb_language][1][0], -1, $prcount[$this->imdb_language] ) );
-		$imdb_page_index_document_title_matches[$this->imdb_language][1][0] = $prcount[$this->imdb_language] === 1 ? $imdb_page_index_document_title_matches[$this->imdb_language][1][0] : trim( preg_replace( '/^([^\x20]+.+[^\x20]+[^\x20]+) \((?:Video\x20)?(?:201[0-5]|200[0-9]|19[6-9][0-9])\) \- IMDb$/', '$1', $imdb_page_index_document_title_matches[$this->imdb_language][1][0], -1, $prcount[$this->imdb_language] ) );
+		$imdb_page_index_document_title_matches[$this->imdb_language][1][0] = trim( preg_replace( '/^([^\x20]+[^\x28\x29]+[^\x20\]+[^\x20]+) \((?:TV Mini\-Series\x20|TV Movie\x20|TV Episode\x20|TV Short\x20|Video\x20)?(?:201[0-5]|200[0-9]|19[0-9][0-9])\) \- IMDb$/', '$1', $imdb_page_index_document_title_matches[$this->imdb_language][1][0], -1, $prcount[$this->imdb_language] ) );
+		$imdb_page_index_document_title_matches[$this->imdb_language][1][0] = $prcount[$this->imdb_language] === 1 ? $imdb_page_index_document_title_matches[$this->imdb_language][1][0] : trim( preg_replace( '/^([^\x20]+.+[^\x20]+[^\x20]+) \((?:Video\x20)?(?:201[0-5]|200[0-9]|19[0-9][0-9])\) \- IMDb$/', '$1', $imdb_page_index_document_title_matches[$this->imdb_language][1][0], -1, $prcount[$this->imdb_language] ) );
 
 		if ( $prcount[$this->imdb_language] === 0 ) {
 			$this->_setError( 'Protected_setIndexDocumentTitle_Preg_Replace_Count_Equal_Zero_' . $this->imdb_language );
@@ -705,7 +890,7 @@ class Imdb {
 				$this->raw->index->image_full[$this->imdb_language] = $this->raw->index->image[$this->imdb_language];
 				$this->raw->index->image_320[$this->imdb_language] = $this->raw->index->image[$this->imdb_language];
 				$this->raw->index->image_full[$this->imdb_language] = preg_replace( '/([@]+)(\._(.+)\.jpg)/', '$1.jpg', $this->raw->index->image_full[$this->imdb_language] );
-				$this->raw->index->image_320[$this->imdb_language] = preg_replace( '/V([123])_S([XYZ])317_CR(0)\,(0)\,214\,317_AL_\.jpg/', 'V$1_S$2;;;474_CR$3,$4,320,474_AL_.jpg', $this->raw->index->image_320[$this->imdb_language] );
+				$this->raw->index->image_320[$this->imdb_language] = preg_replace( '/V([123])_S([XYZ])317_CR(\d)\,(\d)\,214\,317_AL_\.jpg/', 'V$1_S$2;;;474_CR$3,$4,320,474_AL_.jpg', $this->raw->index->image_320[$this->imdb_language] );
 				$this->raw->index->image_320[$this->imdb_language] = preg_replace( '/_S[XYZ]214_/', '_SX320_', $this->raw->index->image_320[$this->imdb_language] );
 				$this->raw->index->image_320[$this->imdb_language] = str_replace( ';;;', '', $this->raw->index->image_320[$this->imdb_language] );
 			}
@@ -838,7 +1023,7 @@ class Imdb {
 
 		if ( !$imdb_page_index_span_class_nobr_count[$this->imdb_language] ) {
 			if ( !preg_match( '/\<span class\=\"nobr\"\>\([0-9]+\)\<\/span\>[\x09\x0a\x0b\x0c\x0d\x20]+\<\/h1\>/', $this->imdb_index_body[$this->imdb_language] ) ) {
-				if ( !preg_match( '/\<span class\=\"nobr\"\>\(201[0-5]|200[0-9]|19[6-9][0-9]\)\<\/span\>[\x09\x0a\x0b\x0c\x0d\x20]*\<br\/\>\<span class\=\"title\-extra\" itemprop\=\"name\"\>/', $this->imdb_index_body[$this->imdb_language] ) ) {
+				if ( !preg_match( '/\<span class\=\"nobr\"\>\(201[0-5]|200[0-9]|19[0-9][0-9]\)\<\/span\>[\x09\x0a\x0b\x0c\x0d\x20]*\<br\/\>\<span class\=\"title\-extra\" itemprop\=\"name\"\>/', $this->imdb_index_body[$this->imdb_language] ) ) {
 					$this->_setError( 'Protected_SetIndexReleaseDate_Substr_Count_Preg_Match_Both_Error_' . $this->imdb_language );
 					return false;
 				}
@@ -851,10 +1036,10 @@ class Imdb {
 			return false;
 		}
 
-		if ( !preg_match_all( '/\<span class\=\"nobr\"\>\(\<a href\=\"\/year\/(201[0-5]|200[0-9]|19[6-9][0-9])/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_years_nobr_matches[$this->imdb_language] ) ) {
-			if ( !preg_match_all( '/\<span class\=\"nobr\"\>\((201[0-5]|200[0-9]|19[6-9][0-9])\)\<\/span\>[\x09\x0a\x0b\x0c\x0d\x20]+\<\/h1\>/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_years_nobr_matches[$this->imdb_language] ) ) {
-				if ( !preg_match_all( '/<span class=\"nobr\"\>\((201[0-5]|200[0-9]|19[6-9][0-9])\)\<\/span\>[\x09\x0a\x0b\x0c\x0d\x20]*\<br\/>\<span class\="title\-extra\" itemprop\=\"name\"\>[\x09\x0a\x0b\x0c\x0d\x20]*\"?([^\x22\x3c]+)\"?[\x09\x0a\x0b\x0c\x0d\x20]*\<i\>[\x09\x0a\x0b\x0c\x0d\x20]*\(original title\)[\x09\x0a\x0b\x0c\x0d\x20]*\<\/i\>/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_years_nobr_matches[$this->imdb_language] ) ) {
-					if ( !preg_match_all( '/tv_header\"\>[\s\S]+\<span class\=\"nobr\"\>\([0-9]+ (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\. (201[0-5]|200[0-9]|19[6-9][0-9])\)\<\/span\>/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_years_nobr_matches[$this->imdb_language] ) ) {
+		if ( !preg_match_all( '/\<span class\=\"nobr\"\>\(\<a href\=\"\/year\/(201[0-5]|200[0-9]|19[0-9][0-9])/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_years_nobr_matches[$this->imdb_language] ) ) {
+			if ( !preg_match_all( '/\<span class\=\"nobr\"\>\((201[0-5]|200[0-9]|19[0-9][0-9])\)\<\/span\>[\x09\x0a\x0b\x0c\x0d\x20]+\<\/h1\>/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_years_nobr_matches[$this->imdb_language] ) ) {
+				if ( !preg_match_all( '/<span class=\"nobr\"\>\((201[0-5]|200[0-9]|19[0-9][0-9])\)\<\/span\>[\x09\x0a\x0b\x0c\x0d\x20]*\<br\/>\<span class\="title\-extra\" itemprop\=\"name\"\>[\x09\x0a\x0b\x0c\x0d\x20]*\"?([^\x22\x3c]+)\"?[\x09\x0a\x0b\x0c\x0d\x20]*\<i\>[\x09\x0a\x0b\x0c\x0d\x20]*\(original title\)[\x09\x0a\x0b\x0c\x0d\x20]*\<\/i\>/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_years_nobr_matches[$this->imdb_language] ) ) {
+					if ( !preg_match_all( '/tv_header\"\>[\s\S]+\<span class\=\"nobr\"\>\([0-9]+ (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\. (201[0-5]|200[0-9]|19[0-9][0-9])\)\<\/span\>/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_years_nobr_matches[$this->imdb_language] ) ) {
 						$this->_setError( 'Protected_SetIndexReleaseDate_Preg_Match_All_False_' . $this->imdb_language );
 						return false;
 					}
@@ -935,8 +1120,8 @@ class Imdb {
 		 * USA
 		 */
 
-		if ( preg_match_all( '/((3[0-1]|[1-2][0-9]|[1-9]) (January|February|March|April|May|June|July|August|September|October|November|December) (201[0-5]|200[0-9]|19[6-9][0-9])).+\=[\x22\x27]{0,1}((201[0-5]|200[0-9]|19[6-9][0-9])\-(1[0-2]|0[1-9])\-(3[0-1]|[1-2][0-9]|0[1-9]))[\x22\x27]{0,1}[^\x3e]*\/?\>[\x20]*\((West Germany|South Africa|USA|Brazil|Mexico|Croatia|Indonesia|Hong Kong|Spain|Norway|Portugal|France|Italy|Germany|Japan|Canada|Netherlands|Ireland|China|UK|Argentina|Belgium)\)[\x20]*(?:&ndash;)?[\x20]*\x3c/', $imdb_page_index_meta_datepublished_html[$this->imdb_language], $imdb_page_index_meta_datepublished_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
-		} elseif ( preg_match_all( '/((.) (January|February|March|April|May|June|July|August|September|October|November|December) (201[0-5]|200[0-9]|19[6-9][0-9])).+\=[\x22\x27]{0,1}((201[0-5]|200[0-9]|19[6-9][0-9])\-(1[0-2]|0[1-9])(?:\-(.))?)[\x22\x27]{0,1}[^\x3e]*\/?\>[\x20]*\((West Germany|South Africa|USA|Brazil|Mexico|Croatia|Indonesia|Hong Kong|Spain|Norway|Portugal|France|Italy|Germany|Japan|Canada|Netherlands|Ireland|China|UK|Argentina|Belgium)\)[\x20]*(?:&ndash;)?[\x20]*\x3c/', $imdb_page_index_meta_datepublished_html[$this->imdb_language], $imdb_page_index_meta_datepublished_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
+		if ( preg_match_all( '/((3[0-1]|[1-2][0-9]|[1-9]) (January|February|March|April|May|June|July|August|September|October|November|December) (201[0-5]|200[0-9]|19[0-9][0-9])).+\=[\x22\x27]{0,1}((201[0-5]|200[0-9]|19[0-9][0-9])\-(1[0-2]|0[1-9])\-(3[0-1]|[1-2][0-9]|0[1-9]))[\x22\x27]{0,1}[^\x3e]*\/?\>[\x20]*\((West Germany|South Africa|USA|Brazil|Mexico|Croatia|Indonesia|Hong Kong|Spain|Norway|Portugal|France|Italy|Germany|Japan|Canada|Netherlands|Ireland|China|UK|Argentina|Belgium)\)[\x20]*(?:&ndash;)?[\x20]*\x3c/', $imdb_page_index_meta_datepublished_html[$this->imdb_language], $imdb_page_index_meta_datepublished_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
+		} elseif ( preg_match_all( '/((.) (January|February|March|April|May|June|July|August|September|October|November|December) (201[0-5]|200[0-9]|19[0-9][0-9])).+\=[\x22\x27]{0,1}((201[0-5]|200[0-9]|19[0-9][0-9])\-(1[0-2]|0[1-9])(?:\-(.))?)[\x22\x27]{0,1}[^\x3e]*\/?\>[\x20]*\((West Germany|South Africa|USA|Brazil|Mexico|Croatia|Indonesia|Hong Kong|Spain|Norway|Portugal|France|Italy|Germany|Japan|Canada|Netherlands|Ireland|China|UK|Argentina|Belgium)\)[\x20]*(?:&ndash;)?[\x20]*\x3c/', $imdb_page_index_meta_datepublished_html[$this->imdb_language], $imdb_page_index_meta_datepublished_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
 			$imdb_page_index_meta_datepublished_matches[$this->imdb_language][0][1] = str_replace( '>', '1', $imdb_page_index_meta_datepublished_matches[$this->imdb_language][0][1] );
 			$imdb_page_index_meta_datepublished_matches[$this->imdb_language][0][2] = '1';
 			$imdb_page_index_meta_datepublished_matches[$this->imdb_language][0][5] .= '-01';
@@ -1252,6 +1437,12 @@ class Imdb {
 			$has_original_titles[$this->imdb_language] = false;
 
 			foreach ( $akas_matches[$this->imdb_language][1] as $key => $country ) {
+				$country_underline = $country;
+				$country_underline = str_replace( ' ', '_', $country_underline );
+				$country_underline = function_exists( 'mb_strtolower' ) ? mb_strtolower( $country_underline ) : strtolower( $country_underline );
+				$country_underline = mb_strtolower( str_replace( ' ', '_', $country_underline ) );
+				$country_underline = str_replace( '(', '', $country_underline );
+				$country_underline = str_replace( ')', '', $country_underline );
 				if ( in_array( $country, array(
 						'Argentina', 'Azerbaijan',
 						'Belgium', 'Bulgaria',
@@ -1268,38 +1459,47 @@ class Imdb {
 						'Netherlands', 'Norway',
 						'Panama', 'Peru', 'Poland',
 						'Romania', 'Russia',
-						'Serbia', 'Slovenia', 'Spain', 'Sweden',
+						'Serbia', 'Slovakia', 'Slovenia', 'Spain', 'Sweden',
 						'Taiwan', 'Turkey',
 						'Ukraine', 'Uruguay',
-						'Venezuela', 'Vietnam'
+						'Venezuela', 'Vietnam',
+						'West Germany',
 					) ) ) {
+					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
+						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_' . $this->imdb_language );
+						return false;
+					}
+					$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
 					continue;
 				}
 				if ( in_array( $country, array(
-						'Bulgaria (Bulgarian title)', 'Canada (French title)', 'China (Mandarin title)',
-						'Germany (alternative title)', 'Greece (DVD title)', 'Greece (transliterated ISO-LATIN-1 title)',
-						'Hong Kong (Cantonese title)', 'Italy (alternative title)', 'Italy (dvd title)', 'Luxembourg (French title)',
+						'Belgium (Flemish title)', 'Belgium (French title)', 'Bulgaria (Bulgarian title)',
+						'Canada (French title)', 'China (Mandarin title)',
+						'Finland (poster title)', 'France (TV title)',
+						'Germany (alternative title)', 'Greece (video title)', 'Greece (DVD title)', 'Greece (transliterated ISO-LATIN-1 title)',
+						'Hong Kong (Cantonese title)',
+						'Israel (Hebrew title)', 'Italy (alternative title)', 'Italy (dvd title)',
+						'Luxembourg (French title)',
 						'Mexico (informal title)',
 						'Romania (long title)',
-						'Turkey (Turkish title)', 'Turkey (DVD title) (Turkish title)', 'Greece (video title)',
+						'Turkey (Turkish title)', 'Turkey (DVD title) (Turkish title)',
 					) ) ) {
+					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
+						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_' . $this->imdb_language );
+						return false;
+					}
+					$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
 					continue;
 				}
 				if ( in_array( $country, array(
-						'Lithuania (3-D version)', 'Turkey (3-D version)',
+						'Belgium (Flemish title) (alternative spelling)',
 					) ) ) {
+					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
+						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_' . $this->imdb_language );
+						return false;
+					}
+					$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
 					continue;
-				}
-				if ( in_array( $country, array(
-						#'USA (fake working title)', 'Turkey (3-D version)',
-					) ) ) {
-					continue;
-				}
-				if ( in_array( $country, array( 'Israel (alternative title) (Hebrew title)', 'Israel (Hebrew title)', 'Spain (alternative spelling)' ) ) ) {
-					continue;
-				}
-				if ( in_array( $country, array( 'UK (DVD title)', 'USA (alternative title)' ) ) ) {
-					#continue;
 				}
 				if ( $country === 'Brazil' ) {
 					if ( isset( $this->raw->info->brazil_title[$this->imdb_language] ) ) {
@@ -1337,11 +1537,21 @@ class Imdb {
 					$this->raw->info->usa_title[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
 					continue;
 				}
+				if ( $country === 'USA (working title)' ) {
+					if ( isset( $this->raw->info->usa_working_title[$this->imdb_language] ) ) {
+						$this->_setError( 'Protected_SetInfoAkas_USA_Already_Defined' );
+						$this->_setError( $this->raw->info->brazil_title[$this->imdb_language] . '|' . $akas_matches[$this->imdb_language][2][$key] );
+						return false;
+					}
+					$this->raw->info->usa_working_title[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
+					continue;
+				}
 				$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_3_' . $this->imdb_language );
 				return false;
 			}
 
 			/**
+			 * 
 			 * Todos titulos extraídos
 			 * 
 			 * 1 = Países
