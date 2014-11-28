@@ -145,6 +145,7 @@ class BingTranslate {
 		$text = str_replace( "\x20\x20", "\x20", $text );
 		$text = str_replace( "\x0d", "\\r", $text );
 		$text = str_replace( "\x0a", "\\n", $text );
+		$text = str_replace( "\x22", "\x5c\x22", $text );
 
 		return $text;
 
@@ -159,6 +160,10 @@ class BingTranslate {
 		$this->text = trim( $this->text );
 
 		$text = $this->text;
+
+		if ( strpos( $text, "\x0d" ) !== false || strpos( $text, "\x0a" ) !== false ) {
+			#return false;
+		}
 
 		if ( defined( 'ABSPATH' ) ) {
 			$cache_folder = ABSPATH . 'wp-content/cache/class-bing-translate/response/';
