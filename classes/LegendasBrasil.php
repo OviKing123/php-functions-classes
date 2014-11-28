@@ -1622,41 +1622,4 @@ class LegendasBrasil {
 
 }
 
-$lb = new LegendasBrasil();
-$lb->setSearch( 'If.I.Stay.2014.720p.BluRay.x264.YIFY' );
-$lb->setLanguage( 'pt-br' );
-#$lb->enableTitleAlternative();
-$lb->run();
-
-if ( $lb->hasError() ) {
-	echo $lb->getError();
-	die();
-}
-
-$lb->download();
-
-if ( $lb->hasError() ) {
-	echo $lb->getError();
-	die();
-}
-
-if ( !$lb->hasDownload() ) {
-	echo 'Zip file not found';
-	die();
-}
-
-if ( !$lb->extractDownload() ) {
-	echo 'Zip extract error';
-	die();
-}
-
-if ( !$lb->fixSubtitle() ) {
-	echo 'Fix subtitle error';
-	die();
-}
-
-$lb->getContents();
-
-die( 'Die' );
-
 ?>
