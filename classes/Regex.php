@@ -46,7 +46,7 @@ class Regex {
 
 		$this->_setSubject( $text );
 
-		return isset( $this->current->subject );
+		return $this;
 
 	}
 
