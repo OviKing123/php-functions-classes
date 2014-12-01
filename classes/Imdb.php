@@ -1534,6 +1534,15 @@ class Imdb {
 					$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
 					continue;
 				}
+				if ( $country === 'Venezuela (3-D version)' ) {
+					if ( isset( $this->raw->info->venezuela_3d_version[$this->imdb_language] ) ) {
+						$this->_setError( 'Protected_SetInfoAkas_Venezuela_3D_Version_Already_Defined' );
+						$this->_setError( $this->raw->info->venezuela_3d_version[$this->imdb_language] . '|' . $akas_matches[$this->imdb_language][2][$key] );
+						return false;
+					}
+					$this->raw->info->venezuela_3d_version[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
+					continue;
+				}
 				if ( $country === 'Brazil' ) {
 					if ( isset( $this->raw->info->brazil_title[$this->imdb_language] ) ) {
 						$this->_setError( 'Protected_SetInfoAkas_Brazil_Already_Defined' );
@@ -1626,12 +1635,18 @@ class Imdb {
 				}
 				if ( $country === 'USA (promotional title)' ) {
 					if ( isset( $this->raw->info->usa_promotional_title[$this->imdb_language] ) ) {
-						$this->_setError( 'Protected_SetInfoAkas_USA_Promotional_Title_Already_Defined' );
-						$this->_setError( $this->raw->info->usa_promotional_title[$this->imdb_language] . '|' . $akas_matches[$this->imdb_language][2][$key] );
-						return false;
+						if ( isset( $this->raw->info->usa_promotional_title_2[$this->imdb_language] ) ) {
+							$this->_setError( 'Protected_SetInfoAkas_USA_Promotional_Title_2_Already_Defined' );
+							$this->_setError( $this->raw->info->usa_promotional_title_2[$this->imdb_language] . '|' . $akas_matches[$this->imdb_language][2][$key] );
+							return false;
+						} else {
+							$this->raw->info->usa_promotional_title_2[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
+							continue;
+						}
+					} else {
+						$this->raw->info->usa_promotional_title[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
+						continue;
 					}
-					$this->raw->info->usa_promotional_title[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
-					continue;
 				}
 				if ( $country === 'Japan (English title)' ) {
 					if ( isset( $this->raw->info->japan_english_title[$this->imdb_language] ) ) {
@@ -1640,6 +1655,32 @@ class Imdb {
 						return false;
 					}
 					$this->raw->info->japan_english_title[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
+					continue;
+				}
+				if ( $country === '(working title)' ) {
+					if ( isset( $this->raw->info->working_title[$this->imdb_language] ) ) {
+						if ( isset( $this->raw->info->working_title_2[$this->imdb_language] ) ) {
+							$this->_setError( 'Protected_SetInfoAkas_Working_Title_2_Already_Defined' );
+							$this->_setError( $this->raw->info->working_title_2[$this->imdb_language] . '|' . $akas_matches[$this->imdb_language][2][$key] );
+							return false;
+						} else {
+							$this->raw->info->working_title_2[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
+							continue;
+						}
+					} else {
+						$this->raw->info->working_title[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
+						continue;
+					}
+				}
+				/**
+				 * Country (Type title)
+				 */
+				if ( substr_count( $country, '(' ) === 1 && preg_match( '/^[A-Za-z\x20\x28\x29]+$/', $country ) ) {
+					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
+						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_' . $this->imdb_language );
+						return false;
+					}
+					$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
 					continue;
 				}
 				var_dump( $country );
