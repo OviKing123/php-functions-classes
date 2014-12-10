@@ -161,10 +161,6 @@ class BingTranslate {
 
 		$text = $this->text;
 
-		if ( strpos( $text, "\x0d" ) !== false || strpos( $text, "\x0a" ) !== false ) {
-			#return false;
-		}
-
 		if ( defined( 'ABSPATH' ) ) {
 			$cache_folder = ABSPATH . 'wp-content/cache/class-bing-translate/response/';
 		} else {
@@ -177,14 +173,14 @@ class BingTranslate {
 		$cache_files[] = $cache_file;
 
 		foreach ( $cache_files as $cache_file ) {
-			if ( file_exists( $cache_file ) ) {
+			if ( is_file( $cache_file ) ) {
 				$this->json = file_get_contents( $cache_file );
 				$this->_parserTranslation();
 				return $this->translation === false ? false : true;
 			}
 		}
 
-		if ( !file_exists( $cache_folder ) && !mkdir( $cache_folder, 0755, true ) ) {
+		if ( !is_dir( $cache_folder ) && !mkdir( $cache_folder, 0755, true ) ) {
 			return false;
 		}
 
@@ -216,6 +212,9 @@ class BingTranslate {
 
 		$ch = curl_init();
 
+		#http://www.bing.com/translator/dynamic/js/LandingPage.js?loc=en&phenabled=&rttenabled=
+		#http://www.bing.com/translator/dynamic/210010/js/LandingPage.js?loc=en&phenabled=&rttenabled=&v=210010
+
 		$options = array(
 			CURLOPT_CONNECTTIMEOUT => 15,
 			CURLOPT_ENCODING => '',
@@ -227,7 +226,7 @@ class BingTranslate {
 			CURLOPT_SSL_VERIFYHOST => false,
 			CURLOPT_SSL_VERIFYPEER => false,
 			CURLOPT_TIMEOUT => 30,
-			CURLOPT_URL => 'http://www.bing.com/translator/dynamic/js/LandingPage.js?loc=en&phenabled=&rttenabled=',
+			CURLOPT_URL => 'http://www.bing.com/translator/dynamic/210010/js/LandingPage.js?loc=en&phenabled=&rttenabled=&v=210010',
 			CURLOPT_USERAGENT => 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:32.0) Gecko/20100101 Firefox/32.0',
 			CURLOPT_VERBOSE => true,
 		);
