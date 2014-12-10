@@ -50,6 +50,9 @@ class ImdbInfo {
 
 }
 
+class ImdbPlot {}
+class ImdbCredits {}
+
 class Imdb {
 
 	/**
@@ -111,9 +114,13 @@ class Imdb {
 
 		$this->raw->index = new ImdbIndex();
 		$this->raw->info = new ImdbInfo();
+		$this->raw->plot = new ImdbPlot();
+		$this->raw->credits = new ImdbCredits();
 
 		$this->normal->index = new ImdbIndex();
 		$this->normal->info = new ImdbInfo();
+		$this->normal->plot = new ImdbPlot();
+		$this->normal->credits = new ImdbCredits();
 
 		$this->settings->only_english = true;
 
@@ -323,12 +330,17 @@ class Imdb {
 
 			if ( !file_exists( $imdb_plotsummary_folder[$this->imdb_language] . 'body' ) || filesize( $imdb_plotsummary_folder[$this->imdb_language] . 'body' ) === 0 ) {
 
+				/*
 				if ( isset( $this->settings->only_english ) && $this->settings->only_english && $this->imdb_language !== 'en-US' ) {
 					$this->imdb_plotsummary_body[$this->imdb_language] = isset( $this->imdb_plotsummary_body['en-US'] ) ? $this->imdb_plotsummary_body['en-US'] : '';
 				} else {
 					$imdb_http_result[$this->imdb_language] = $this->_curl_get( $imdb_plotsummary_url, $this->imdb_language, $imdb_plotsummary_folder[$this->imdb_language] );
 					$this->imdb_plotsummary_body[$this->imdb_language] = isset( $imdb_http_result[$this->imdb_language]['body'] ) && trim( $imdb_http_result[$this->imdb_language]['body'] ) !== '' ? $imdb_http_result[$this->imdb_language]['body'] : ( ( $tmp = file_get_contents( $imdb_plotsummary_folder[$this->imdb_language] . 'body' ) ) !== false && trim( $tmp ) !== '' ? $tmp : null );
 				}
+				*/
+
+				$imdb_http_result[$this->imdb_language] = $this->_curl_get( $imdb_plotsummary_url, $this->imdb_language, $imdb_plotsummary_folder[$this->imdb_language] );
+				$this->imdb_plotsummary_body[$this->imdb_language] = isset( $imdb_http_result[$this->imdb_language]['body'] ) && trim( $imdb_http_result[$this->imdb_language]['body'] ) !== '' ? $imdb_http_result[$this->imdb_language]['body'] : ( ( $tmp = file_get_contents( $imdb_plotsummary_folder[$this->imdb_language] . 'body' ) ) !== false && trim( $tmp ) !== '' ? $tmp : null );
 
 			} else {
 
@@ -362,7 +374,7 @@ class Imdb {
 
 			$this->raw->index->rating[$this->imdb_language] = null;
 
-			#$this->raw->index->votes[$this->imdb_language] = null;
+			$this->raw->index->votes[$this->imdb_language] = null;
 			#$this->raw->index->metascore[$this->imdb_language] = null;
 			#$this->raw->index->reviews[$this->imdb_language] = null;
 			#$this->raw->index->critics[$this->imdb_language] = null;
@@ -433,8 +445,8 @@ class Imdb {
 			$this->_setIndexGenres();
 			$this->_setIndexReleaseDate();
 			$this->_setIndexRating();
+			$this->_setIndexVotes();
 
-			#$this->_setIndexVotes();
 			#$this->_setIndexMetascore();
 			#$this->_setIndexReviews();
 			#$this->_setIndexCritics();
@@ -449,7 +461,6 @@ class Imdb {
 			$this->_setIndexCast();
 			$this->_setIndexRelated();
 
-			#$this->_setWriters();
 			#$this->_setStars();
 			#$this->_setVideos();
 			#$this->_setPhotos();
@@ -462,10 +473,13 @@ class Imdb {
 			#$this->_setTechnicalSpecs();
 
 			$this->_setInfoAkas();
-			#$this->_setInfoDirectors();
-			#$this->_setWriters();
-			#$this->_setActors();
-			#$this->_setDescriptions();
+			#$this->_setInfoDates();
+
+			$this->_setCreditsDirectors();
+			$this->_setCreditsWriters();
+			$this->_setCreditsActors();
+
+			$this->_setPlotDescriptions();
 
 		}
 
@@ -493,6 +507,16 @@ class Imdb {
 
 		if ( !$this->_rawInfoToNormal() ) {
 			$this->_setError( 'Protected_RawInfoToNormal_False' );
+			return false;
+		}
+
+		if ( !$this->_rawPlotToNormal() ) {
+			$this->_setError( 'Protected_RawPlotToNormal_False' );
+			return false;
+		}
+
+		if ( !$this->_rawCreditsToNormal() ) {
+			$this->_setError( 'Protected_RawCreditsToNormal_False' );
 			return false;
 		}
 
@@ -524,6 +548,7 @@ class Imdb {
 		$this->normal->index->release_date = isset( $this->raw->index->release_date ) ? $this->raw->index->release_date : null;
 		$this->normal->index->release_date_country = isset( $this->raw->index->release_date_country ) ? $this->raw->index->release_date_country : null;
 		$this->normal->index->rating = isset( $this->raw->index->rating ) ? $this->raw->index->rating : null;
+		$this->normal->index->votes = isset( $this->raw->index->votes ) ? $this->raw->index->votes : null;
 		$this->normal->index->descriptions = isset( $this->raw->index->description ) ? $this->raw->index->description : null;
 		$this->normal->index->description = isset( $this->raw->index->description ) ? $this->raw->index->description : null;
 		$this->normal->index->directors = isset( $this->raw->index->image ) ? $this->raw->index->directors : null;
@@ -573,6 +598,7 @@ class Imdb {
 		$this->normal->index->release_year = isset( $this->normal->index->release_year ) ? $this->_unique( $this->normal->index->release_year ) : null;
 		$this->normal->index->release_dates = isset( $this->normal->index->release_dates ) ? $this->_unique( $this->normal->index->release_dates ) : null;
 		$this->normal->index->rating = isset( $this->normal->index->rating ) ? array_filter( array_unique( $this->normal->index->rating ) ) : null;
+		$this->normal->index->votes = isset( $this->normal->index->votes ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->votes ) ) ) ) !== false ? $tmp : null ) : null;
 		$this->normal->index->descriptions = isset( $this->normal->index->description ) ? array_filter( array_unique( $this->normal->index->description ) ) : null;
 		$this->normal->index->description = isset( $this->normal->index->description ) ? ( ( $tmp = current( array_filter( array_unique( $this->normal->index->description ) ) ) ) !== false ? $tmp : null ) : null;
 		$this->normal->index->directors = isset( $this->normal->index->directors ) ? array_unique( $this->_unique( $this->normal->index->directors ) ) : null;
@@ -651,6 +677,43 @@ class Imdb {
 
 		ksort( $this->normal->info->titles );
 		ksort( $this->normal->info->titles_all );
+
+		return true;
+
+	}
+
+	protected function _rawPlotToNormal() {
+
+		if ( !isset( $this->raw->plot ) ) {
+			$this->_setError( 'Protected_RawPlotToNormal_This_Raw_Plot_Undefined' );
+			return false;
+		}
+
+		$this->normal->plot->descriptions = isset( $this->raw->plot->descriptions ) ? $this->_unique( $this->raw->plot->descriptions ) : null;
+		$this->normal->plot->description = isset( $this->normal->plot->descriptions ) ? ( ( $tmp = current( $this->normal->plot->descriptions ) ) !== false ? $tmp : null ) : null;
+
+		return true;
+
+	}
+
+	protected function _rawCreditsToNormal() {
+
+		if ( !isset( $this->raw->credits ) ) {
+			$this->_setError( 'Protected_RawCreditsToNormal_This_Raw_Credits_Undefined' );
+			return false;
+		}
+
+		$this->normal->credits->directors = isset( $this->raw->credits->directors ) ? $this->_unique( $this->raw->credits->directors ) : null;
+		$this->normal->credits->directors_str = isset( $this->normal->credits->directors ) ? implode( ', ', $this->normal->credits->directors ) : null;
+		$this->normal->credits->director = isset( $this->normal->credits->directors ) ? ( ( $tmp = current( $this->normal->credits->directors ) ) !== false ? $tmp : null ) : null;
+
+		$this->normal->credits->writers = isset( $this->raw->credits->writers ) ? $this->_unique( $this->raw->credits->writers ) : null;
+		$this->normal->credits->writers_str = isset( $this->normal->credits->writers ) ? implode( ', ', $this->normal->credits->writers ) : null;
+		$this->normal->credits->writer = isset( $this->normal->credits->writers ) ? ( ( $tmp = current( $this->normal->credits->writers ) ) !== false ? $tmp : null ) : null;
+
+		$this->normal->credits->actors = isset( $this->raw->credits->actors ) ? $this->_unique( $this->raw->credits->actors ) : null;
+		$this->normal->credits->actors_str = isset( $this->normal->credits->actors ) ? implode( ', ', $this->normal->credits->actors ) : null;
+		$this->normal->credits->actor = isset( $this->normal->credits->actors ) ? ( ( $tmp = current( $this->normal->credits->actors ) ) !== false ? $tmp : null ) : null;
 
 		return true;
 
@@ -897,7 +960,7 @@ class Imdb {
 				$this->raw->index->image_full[$this->imdb_language] = $this->raw->index->image[$this->imdb_language];
 				$this->raw->index->image_320[$this->imdb_language] = $this->raw->index->image[$this->imdb_language];
 				$this->raw->index->image_full[$this->imdb_language] = preg_replace( '/([@]+)(\._(.+)\.jpg)/', '$1.jpg', $this->raw->index->image_full[$this->imdb_language] );
-				$this->raw->index->image_320[$this->imdb_language] = preg_replace( '/V([123])_S([XYZ])317_CR(\d)\,(\d)\,214\,317_AL_\.jpg/', 'V$1_S$2;;;474_CR$3,$4,320,474_AL_.jpg', $this->raw->index->image_320[$this->imdb_language] );
+				$this->raw->index->image_320[$this->imdb_language] = preg_replace( '/V([123])_S([XYZ])317_CR(\d+)\,(\d)\,214\,317_AL_\.jpg/', 'V$1_S$2;;;474_CR$3,$4,320,474_AL_.jpg', $this->raw->index->image_320[$this->imdb_language] );
 				$this->raw->index->image_320[$this->imdb_language] = preg_replace( '/_S[XYZ]214_/', '_SX320_', $this->raw->index->image_320[$this->imdb_language] );
 				$this->raw->index->image_320[$this->imdb_language] = str_replace( ';;;', '', $this->raw->index->image_320[$this->imdb_language] );
 			}
@@ -961,11 +1024,41 @@ class Imdb {
 
 	}
 
+	protected function _getDurationFromDatabase() {
+
+		static $db;
+
+		$db = $db !== null ? $db : array(
+			'tt1352386' => '84',
+		);
+
+		isset( $db[$this->id] ) && $this->raw->index->duration[$this->imdb_language] = $db[$this->id];
+
+	}
+
+	protected function _getReleaseDateFromDatabase() {
+
+		static $db;
+
+		$db = $db !== null ? $db : array(
+			'tt1352386' => 'January 21 2009',
+		);
+
+		isset( $db[$this->id] ) && $this->raw->index->release_date[$this->imdb_language] = $db[$this->id];
+
+	}
+
 	protected function _setIndexDuration() {
 
 		if ( !isset( $this->imdb_index_body[$this->imdb_language] ) || !isset( $this->imdb_language ) ) {
 			$this->_setError( 'Protected_SetIndexDuration_Index_Body_Or_Language_Undefined_' );
 			return false;
+		}
+
+		$this->_getDurationFromDatabase();
+
+		if ( isset( $this->raw->index->duration[$this->imdb_language] ) ) {
+			return true;
 		}
 
 		$imdb_page_index_infobar_html[$this->imdb_language] = $this->imdb_index_body[$this->imdb_language];
@@ -1095,12 +1188,15 @@ class Imdb {
 			$imdb_page_index_duration_matches[$this->imdb_language][0][1] = '90';
 		} elseif ( $this->id === 'tt1131747' ) {
 			$imdb_page_index_duration_matches[$this->imdb_language][0][1] = '104';
-			$imdb_page_index_meta_datepublished_html[$this->imdb_language] = '1 October 2008<meta itemprop="datePublished" content="2008-09-01" /> (USA) </a>';
+			$imdb_page_index_meta_datepublished_html[$this->imdb_language] = '1 October 2008<meta itemprop="datePublished" content="2008-08-01" /> (USA) </a>';
 		} elseif ( $this->id === 'tt1335992' ) {
 			$imdb_page_index_duration_matches[$this->imdb_language][0][1] = '87';
 		} elseif ( $this->id === 'tt1051253' ) {
 			$imdb_page_index_duration_matches[$this->imdb_language][0][1] = '84';
 			$imdb_page_index_meta_datepublished_html[$this->imdb_language] = '1 January 2010<meta itemprop="datePublished" content="2010-01-01" /> (USA) </a>';
+		} elseif ( $this->id === 'tt1352386' ) {
+			$imdb_page_index_duration_matches[$this->imdb_language][0][1] = '84';
+			$imdb_page_index_meta_datepublished_html[$this->imdb_language] = '21 January 2009<meta itemprop="datePublished" content="2009-01-21" /> (USA) </a>';
 		} elseif ( $this->id === 'tt1754799' ) {
 
 			if ( $this->imdb_language === 'en-US' ) {
@@ -1194,6 +1290,53 @@ class Imdb {
 
 	}
 
+	protected function _setIndexVotes() {
+
+		if ( !isset( $this->imdb_index_body[$this->imdb_language] ) || !isset( $this->imdb_language ) ) {
+			$this->_setError( 'Protected_SetIndexVotes_Index_Body_Or_Language_Undefined_' );
+			return false;
+		}
+
+		if ( preg_match_all( '/\d+ IMDb users have given a weighted average vote of (([0-9\.]+)\/([0-9\.]+))\"[^\x3e]*\>[\x00-\x20\x7f]*\<span itemprop\=\"ratingCount\"\>[\x00-\x20\x7f]*(\d+)[\x00-\x20\x7f]*\<\/span\> users/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_votes_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
+
+			if ( count( $imdb_page_index_votes_matches[$this->imdb_language] ) !== 1 ) {
+				$this->_setError( 'Protected_SetIndexVotes_Count_Diff_1_' . __LINE__ );
+				return false;
+			}
+
+			if ( !isset( $imdb_page_index_votes_matches[$this->imdb_language][0][4] ) ) {
+				$this->_setError( 'Protected_SetIndexVotes_Matches_Undefined_' . __LINE__ );
+				return false;
+			}
+
+			$this->raw->index->votes[$this->imdb_language] = $imdb_page_index_votes_matches[$this->imdb_language][0][4];
+
+		} elseif ( preg_match_all( '/\<span\b[^\x3e]*itemprop\=\"ratingCount\"[^\x3e]*\>[\x00-\x20\x7f]*(\d+)[\x00-\x20\x7f]*\<\/span\>[\x00-\x20\x7f]*users/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_votes_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
+
+			if ( count( $imdb_page_index_votes_matches[$this->imdb_language] ) !== 1 ) {
+				$this->_setError( 'Protected_SetIndexVotes_Count_Diff_1_' . __LINE__ );
+				return false;
+			}
+
+			if ( !isset( $imdb_page_index_votes_matches[$this->imdb_language][0][1] ) ) {
+				$this->_setError( 'Protected_SetIndexVotes_Matches_Undefined_' . __LINE__ );
+				return false;
+			}
+
+			$this->raw->index->votes[$this->imdb_language] = $imdb_page_index_votes_matches[$this->imdb_language][0][1];
+
+		} else {
+
+			$this->raw->index->votes[$this->imdb_language] = null;
+
+			return true;
+
+		}
+
+		return true;
+
+	}
+
 	protected function _setIndexDescription() {
 
 		if ( !isset( $this->imdb_index_body[$this->imdb_language] ) || !isset( $this->imdb_language ) ) {
@@ -1244,6 +1387,10 @@ class Imdb {
 
 		if ( ( $close = stripos( $html, '<h4 class="inline">Writers:</h4>' ) ) === false ) {
 			if ( ( $close = stripos( $html, '<h4 class="inline">Writer:</h4>' ) ) === false ) {
+				if ( ( $close = stripos( $html, '<h4 class="inline">Stars:</h4>' ) ) === false ) {
+					if ( ( $close = stripos( $html, '<h4 class="inline">Star:</h4>' ) ) === false ) {
+					}
+				}
 			}
 		}
 
@@ -1288,6 +1435,11 @@ class Imdb {
 		}
 
 		if ( $open === false || $close === false ) {
+			if ( stripos( $html, 'writers' ) === false ) {
+				$this->raw->index->writers[$this->imdb_language] = array();
+				$this->raw->index->writer[$this->imdb_language] = null;
+				return true;
+			}
 			$this->_setError( 'Protected_SetIndexWriters_Open_Or_Close_False_' . __LINE__ );
 			return false;
 		}
@@ -1376,8 +1528,12 @@ class Imdb {
 
 	/**
 	 * Set Info - Reescrevendo toda essa parte debaixo
+	 * Atualização 1 - Algumas funções já foram reescritas porém rapidamente, não foi feita revisão, mas estão funcionando os dados dos diretores, escritores e atores
 	 */
 
+	/**
+	 * Extrai o títulos do filme da página "info" (Release Info)
+	 */
 	protected function _setInfoAkas() {
 
 		if ( !isset( $this->imdb_releaseinfo_body[$this->imdb_language] ) ) {
@@ -1688,152 +1844,124 @@ class Imdb {
 				return false;
 			}
 
-			/**
-			 * 
-			 * Todos titulos extraídos
-			 * 
-			 * 1 = Países
-			 * 2 = Títulos
-			 * 
-			 */
-
 		}
 
 		return true;
 
 	}
 
-	protected function _setInfoDirectors() {
+	/**
+	 * Extrai o nome dos diretores da página "credits" (Full Credits)
+	 */
+	protected function _setCreditsDirectors() {
 
-		/**
-		 * Full Credits - Director
-		 */
-
-		if ( ( $imdb_page_fullcredits_directed_by_open_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Directed by&nbsp;</h4>' ) ) === false ) {
-			if ( ( $imdb_page_fullcredits_directed_by_open_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Series Directed by&nbsp;</h4>' ) ) === false ) {
+		if ( ( $open_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Directed by&nbsp;</h4>' ) ) === false ) {
+			if ( ( $open_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Series Directed by&nbsp;</h4>' ) ) === false ) {
 			}			
 		}
 
-		if ( ( $imdb_page_fullcredits_directed_by_close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Writing Credits' ) ) === false ) {
-			if ( ( $imdb_page_fullcredits_directed_by_close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Series Writing Credits' ) ) === false ) {
+		if ( ( $close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Writing Credits' ) ) === false ) {
+			if ( ( $close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Series Writing Credits' ) ) === false ) {
 				if ( stripos( $this->imdb_fullcredits_body[$this->imdb_language], 'Writing Credits' ) === false && stripos( $this->imdb_fullcredits_body[$this->imdb_language], 'Series Writing Credits' ) === false ) {
-					if ( ( $imdb_page_fullcredits_directed_by_close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 name="cast" id="cast" class="dataHeaderWithBorder">' ) ) === false ) {
+					if ( ( $close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 name="cast" id="cast" class="dataHeaderWithBorder">' ) ) === false ) {
 					}
 				}
 			}
 		}
 
-		if ( $imdb_page_fullcredits_directed_by_open_pos[$this->imdb_language] === false || $imdb_page_fullcredits_directed_by_close_pos[$this->imdb_language] === false ) {
+		if ( $open_pos[$this->imdb_language] === false || $close_pos[$this->imdb_language] === false ) {
 			$this->_setError( 'Protected_Parse_ReleaseInfo_Director_Not_Found_' . $this->imdb_language );
 			$this->_setError( '<textarea>' . $this->_esc_attr( $this->imdb_fullcredits_body[$this->imdb_language] ) . '</textarea>' );
 			return false;
 		}
 
-		$imdb_page_fullcredits_directed_by_html[$this->imdb_language] = $this->imdb_fullcredits_body[$this->imdb_language];
-		$imdb_page_fullcredits_directed_by_html[$this->imdb_language] = trim( substr( $imdb_page_fullcredits_directed_by_html[$this->imdb_language], $imdb_page_fullcredits_directed_by_open_pos[$this->imdb_language] + 55, $imdb_page_fullcredits_directed_by_close_pos[$this->imdb_language] - $imdb_page_fullcredits_directed_by_open_pos[$this->imdb_language] - 55 ) );
-		$imdb_page_fullcredits_directed_by_html[$this->imdb_language] = trim( preg_replace( '/[\x09\x0a\x0b\x0c\x0d]{1,}/', "\x20", $imdb_page_fullcredits_directed_by_html[$this->imdb_language] ) );
+		$html[$this->imdb_language] = $this->imdb_fullcredits_body[$this->imdb_language];
+		$html[$this->imdb_language] = trim( substr( $html[$this->imdb_language], $open_pos[$this->imdb_language] + 55, $close_pos[$this->imdb_language] - $open_pos[$this->imdb_language] - 55 ) );
+		$html[$this->imdb_language] = trim( preg_replace( '/[\x09\x0a\x0b\x0c\x0d]{1,}/', "\x20", $html[$this->imdb_language] ) );
 
-		$imdb_page_fullcredits_directed_by_anchors_open_count[$this->imdb_language] = substr_count( strtolower( $imdb_page_fullcredits_directed_by_html[$this->imdb_language] ), '<a' );
-		$imdb_page_fullcredits_directed_by_anchors_close_count[$this->imdb_language] = substr_count( strtolower( $imdb_page_fullcredits_directed_by_html[$this->imdb_language] ), '</a>' );
+		$open_count[$this->imdb_language] = substr_count( strtolower( $html[$this->imdb_language] ), '<a' );
+		$close_count[$this->imdb_language] = substr_count( strtolower( $html[$this->imdb_language] ), '</a>' );
 
-		if ( !$imdb_page_fullcredits_directed_by_anchors_open_count[$this->imdb_language] || !$imdb_page_fullcredits_directed_by_anchors_close_count[$this->imdb_language] || ( $imdb_page_fullcredits_directed_by_anchors_open_count[$this->imdb_language] !== $imdb_page_fullcredits_directed_by_anchors_close_count[$this->imdb_language] ) ) {
+		if ( !$open_count[$this->imdb_language] || !$close_count[$this->imdb_language] || ( $open_count[$this->imdb_language] !== $close_count[$this->imdb_language] ) ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Release Info - Director - 2 - ' . $url . '</h2>';
-			#echo '<pre>' . htmlentities( $imdb_page_fullcredits_directed_by_html[$this->imdb_language] ) . '</pre>';
 			return false;
 		}
 
-		if ( $imdb_page_fullcredits_directed_by_anchors_close_count[$this->imdb_language] !== 1 && $imdb_page_fullcredits_directed_by_anchors_close_count[$this->imdb_language] !== 2 ) {
+		if ( $close_count[$this->imdb_language] !== 1 && $close_count[$this->imdb_language] !== 2 && $close_count[$this->imdb_language] !== 5 ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Release Info - Director - 3 - ' . $url . '</h2>';
-			#echo '<pre>' . htmlentities( $imdb_page_fullcredits_directed_by_html[$this->imdb_language] ) . '</pre>';
 			return false;
 		}
 
-		if ( !preg_match_all( '/\<a\b[^\x3e]*\>[\x20]*([^\x20]+[^\x3c]+[^\x20]+)[\x20]*\<\/a\>/', $imdb_page_fullcredits_directed_by_html[$this->imdb_language], $imdb_directed_matches[$this->imdb_language] ) ) {
+		if ( !preg_match_all( '/\<a\b[^\x3e]*\>[\x20]*([^\x20]+[^\x3c]+[^\x20]+)[\x20]*\<\/a\>/', $html[$this->imdb_language], $matches[$this->imdb_language] ) ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Release Info - Director - 4 - ' . $url . '</h2>';
-			#echo '<pre>' . htmlentities( $imdb_page_fullcredits_directed_by_html[$this->imdb_language] ) . '</pre>';
 			return false;
 		}
 
-		if ( !isset( $imdb_directed_matches[$this->imdb_language][1] ) ) {
+		if ( !isset( $matches[$this->imdb_language][1] ) ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Release Info - Director - 5 - ' . $url . '</h2>';
-			#echo '<pre>' . htmlentities( $imdb_page_fullcredits_directed_by_html[$this->imdb_language] ) . '</pre>';
 			return false;
 		}
 
-		if ( count( $imdb_directed_matches[$this->imdb_language][1] ) !== 1 && count( $imdb_directed_matches[$this->imdb_language][1] ) !== 2 ) {
+		if ( count( $matches[$this->imdb_language][1] ) !== 1 && count( $matches[$this->imdb_language][1] ) !== 2 && count( $matches[$this->imdb_language][1] ) !== 5 ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Release Info - Director - 6 - ' . $url . '</h2>';
-			#echo '<pre>' . htmlentities( $imdb_page_fullcredits_directed_by_html[$this->imdb_language] ) . '</pre>';
 			return false;
 		}
 
-		$imdb_directors[$this->imdb_language] = array_unique( $imdb_directed_matches[$this->imdb_language][1] );
-		$imdb_directors_str[$this->imdb_language] = implode( ', ', $imdb_directors[$this->imdb_language] );
-		$imdb_director[$this->imdb_language] = $imdb_directed_matches[$this->imdb_language][1][0];
+		$this->raw->credits->directors[$this->imdb_language] = array_values( array_unique( $matches[$this->imdb_language][1] ) );
+		$this->raw->credits->director[$this->imdb_language] = $matches[$this->imdb_language][1][0];
+
+		return true;
 
 	}
 
-	protected function _setWriters() {
+	/**
+	 * Extrai o nome dos escritores da página "credits" (Full Credits)
+	 */
+	protected function _setCreditsWriters() {
 
-		/**
-		 * Full Credits - Writers
-		 */
-
-		if ( ( $imdb_page_fullcredits_writers_open_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Writing Credits' ) ) === false ) {
-			if ( ( $imdb_page_fullcredits_writers_open_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Series Writing Credits' ) ) === false ) {
+		if ( ( $open_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Writing Credits' ) ) === false ) {
+			if ( ( $open_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Series Writing Credits' ) ) === false ) {
 			}
 		}
 
-		if ( ( $imdb_page_fullcredits_writers_close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 name="cast" id="cast" class="dataHeaderWithBorder">' ) ) === false ) {
-			if ( ( $imdb_page_fullcredits_writers_close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 name="cast" id="cast" class="dataHeaderWithBorder">' ) ) === false ) {
+		if ( ( $close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 name="cast" id="cast" class="dataHeaderWithBorder">' ) ) === false ) {
+			if ( ( $close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 name="cast" id="cast" class="dataHeaderWithBorder">' ) ) === false ) {
 			}
 		}
 
 		if ( !( stripos( $this->imdb_fullcredits_body[$this->imdb_language], 'Writing Credits' ) === false && stripos( $this->imdb_fullcredits_body[$this->imdb_language], 'Series Writing Credits' ) === false ) ) {
 
-			if ( $imdb_page_fullcredits_writers_open_pos[$this->imdb_language] === false || $imdb_page_fullcredits_writers_close_pos[$this->imdb_language] === false ) {
+			if ( $open_pos[$this->imdb_language] === false || $close_pos[$this->imdb_language] === false ) {
 				$this->_setError( 'Error' . __LINE__ );
-				#echo '<h2>Imdb - Full Credits - Writers - 1 - ' . $url . '</h2>';
 				return false;
 			}
 
-			$imdb_page_fullcredits_writers_html[$this->imdb_language] = $this->imdb_fullcredits_body[$this->imdb_language];
-			$imdb_page_fullcredits_writers_html[$this->imdb_language] = trim( substr( $imdb_page_fullcredits_writers_html[$this->imdb_language], $imdb_page_fullcredits_writers_open_pos[$this->imdb_language] + 48 ) );
-			$imdb_page_fullcredits_writers_html[$this->imdb_language] = trim( substr( $imdb_page_fullcredits_writers_html[$this->imdb_language], 0, $imdb_page_fullcredits_writers_close_pos[$this->imdb_language] - $imdb_page_fullcredits_writers_open_pos[$this->imdb_language] ) );
-			$imdb_page_fullcredits_writers_html[$this->imdb_language] = trim( preg_replace( '/[\x09\x0a\x0b\x0c\x0d]{1,}/', "\x20", $imdb_page_fullcredits_writers_html[$this->imdb_language] ) );
-			$imdb_page_fullcredits_writers_html[$this->imdb_language] = trim( str_replace( '<a href="http://www.imdb.com/help/show_leaf?wga&ref_=wga" >WGA</a>', '', $imdb_page_fullcredits_writers_html[$this->imdb_language] ) );
+			$html[$this->imdb_language] = $this->imdb_fullcredits_body[$this->imdb_language];
+			$html[$this->imdb_language] = trim( substr( $html[$this->imdb_language], $open_pos[$this->imdb_language] + 48 ) );
+			$html[$this->imdb_language] = trim( substr( $html[$this->imdb_language], 0, $close_pos[$this->imdb_language] - $open_pos[$this->imdb_language] ) );
+			$html[$this->imdb_language] = trim( preg_replace( '/[\x09\x0a\x0b\x0c\x0d]{1,}/', "\x20", $html[$this->imdb_language] ) );
+			$html[$this->imdb_language] = trim( str_replace( '<a href="http://www.imdb.com/help/show_leaf?wga&ref_=wga" >WGA</a>', '', $html[$this->imdb_language] ) );
 
-			$imdb_page_fullcredits_writers_anchors_open_count[$this->imdb_language] = substr_count( strtolower( $imdb_page_fullcredits_writers_html[$this->imdb_language] ), '<a' );
-			$imdb_page_fullcredits_writers_anchors_close_count[$this->imdb_language] = substr_count( strtolower( $imdb_page_fullcredits_writers_html[$this->imdb_language] ), '</a>' );
+			$open_count[$this->imdb_language] = substr_count( strtolower( $html[$this->imdb_language] ), '<a' );
+			$close_count[$this->imdb_language] = substr_count( strtolower( $html[$this->imdb_language] ), '</a>' );
 
-			if ( !$imdb_page_fullcredits_writers_anchors_open_count[$this->imdb_language] || !$imdb_page_fullcredits_writers_anchors_close_count[$this->imdb_language] || ( $imdb_page_fullcredits_writers_anchors_open_count[$this->imdb_language] !== $imdb_page_fullcredits_writers_anchors_close_count[$this->imdb_language] ) ) {
+			if ( !$open_count[$this->imdb_language] || !$close_count[$this->imdb_language] || ( $open_count[$this->imdb_language] !== $close_count[$this->imdb_language] ) ) {
 				$this->_setError( 'Error' . __LINE__ );
-				#echo '<h2>Imdb - Full Credits - Writers - 2 - ' . $url . '</h2>';
-				#echo '<pre>' . htmlentities( $imdb_page_fullcredits_writers_html[$this->imdb_language] ) . '</pre>';
 				return false;
 			}
 
-			if ( !preg_match_all( '/\<a\b[^\x3e]*\>[\x20]*([^\x20]+[^\x3c]+[^\x20]+)[\x20]*\<\/a\>/', $imdb_page_fullcredits_writers_html[$this->imdb_language], $imdb_page_fullcredits_writers_matches[$this->imdb_language] ) ) {
+			if ( !preg_match_all( '/\<a\b[^\x3e]*\>[\x20]*([^\x20]+[^\x3c]+[^\x20]+)[\x20]*\<\/a\>/', $html[$this->imdb_language], $matches[$this->imdb_language] ) ) {
 				$this->_setError( 'Error' . __LINE__ );
-				#echo '<h2>Imdb - Full Credits - Writers - 3 - ' . $url . '</h2>';
-				#echo '<pre>' . htmlentities( $imdb_page_fullcredits_writers_html[$this->imdb_language] ) . '</pre>';
 				return false;
 			}
 
-			if ( !isset( $imdb_page_fullcredits_writers_matches[$this->imdb_language][1] ) ) {
+			if ( !isset( $matches[$this->imdb_language][1] ) ) {
 				$this->_setError( 'Error' . __LINE__ );
-				#echo '<h2>Imdb - Full Credits - Writers - 4 - ' . $url . '</h2>';
-				#echo '<pre>' . htmlentities( $imdb_page_fullcredits_writers_html[$this->imdb_language] ) . '</pre>';
 				return false;
 			}
 
-			$this->raw->writers[$this->imdb_language] = array_unique( $imdb_page_fullcredits_writers_matches[$this->imdb_language][1] );
-			$this->raw->writers_str[$this->imdb_language] = implode( ', ', $this->raw->writers[$this->imdb_language] );
-			$this->raw->writer[$this->imdb_language] = $imdb_page_fullcredits_writers_matches[$this->imdb_language][1][0];
+			$this->raw->credits->writers[$this->imdb_language] = array_values( array_unique( $matches[$this->imdb_language][1] ) );
+			$this->raw->credits->writer[$this->imdb_language] = $matches[$this->imdb_language][1][0];
 
 		}
 
@@ -1841,117 +1969,94 @@ class Imdb {
 
 	}
 
-	protected function _setActors() {
+	/**
+	 * Extrai o nome dos atores e atrizes da página "credits" (Full Credits)
+	 */
+	protected function _setCreditsActors() {
 
-		/**
-		 * Imdb - Full Credits - Actors
-		 */
-
-		if ( ( $imdb_page_fullcredits_actors_open_pos[$this->imdb_language] = strpos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 name="cast" id="cast" class="dataHeaderWithBorder">' ) ) === false ) {
+		if ( ( $open_pos[$this->imdb_language] = strpos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 name="cast" id="cast" class="dataHeaderWithBorder">' ) ) === false ) {
 		}
 
-		if ( ( $imdb_page_fullcredits_actors_close_pos[$this->imdb_language] = strpos( $this->imdb_fullcredits_body[$this->imdb_language], '<div class="full_cast form-box">' ) ) === false ) {
-			if ( ( $imdb_page_fullcredits_actors_close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Produced by&nbsp;</h4>' ) ) === false ) {
-				if ( ( $imdb_page_fullcredits_actors_close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Produced by </h4>' ) ) === false ) {
+		if ( ( $close_pos[$this->imdb_language] = strpos( $this->imdb_fullcredits_body[$this->imdb_language], '<div class="full_cast form-box">' ) ) === false ) {
+			if ( ( $close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Produced by&nbsp;</h4>' ) ) === false ) {
+				if ( ( $close_pos[$this->imdb_language] = stripos( $this->imdb_fullcredits_body[$this->imdb_language], '<h4 class="dataHeaderWithBorder">Produced by </h4>' ) ) === false ) {
 				}
 			}
 		}
 
-		if ( $imdb_page_fullcredits_actors_open_pos[$this->imdb_language] === false || $imdb_page_fullcredits_actors_close_pos[$this->imdb_language] === false ) {
+		if ( $open_pos[$this->imdb_language] === false || $close_pos[$this->imdb_language] === false ) {
 			$this->_setError( 'Error' . __LINE__ );
 			return false;
 		}
 
-		$imdb_page_fullcredits_actors_html[$this->imdb_language] = $this->imdb_fullcredits_body[$this->imdb_language];
-		$imdb_page_fullcredits_actors_html[$this->imdb_language] = trim( substr( $imdb_page_fullcredits_actors_html[$this->imdb_language], $imdb_page_fullcredits_actors_open_pos[$this->imdb_language] + 55 ) );
-		$imdb_page_fullcredits_actors_html[$this->imdb_language] = trim( substr( $imdb_page_fullcredits_actors_html[$this->imdb_language], 0, $imdb_page_fullcredits_actors_close_pos[$this->imdb_language] - $imdb_page_fullcredits_actors_open_pos[$this->imdb_language] ) );
-		$imdb_page_fullcredits_actors_html[$this->imdb_language] = trim( preg_replace( '/[\x09\x0a\x0b\x0c\x0d]{1,}/', "\x20", $imdb_page_fullcredits_actors_html[$this->imdb_language] ) );
+		$html[$this->imdb_language] = $this->imdb_fullcredits_body[$this->imdb_language];
+		$html[$this->imdb_language] = trim( substr( $html[$this->imdb_language], $open_pos[$this->imdb_language] + 55 ) );
+		$html[$this->imdb_language] = trim( substr( $html[$this->imdb_language], 0, $close_pos[$this->imdb_language] - $open_pos[$this->imdb_language] ) );
+		$html[$this->imdb_language] = trim( preg_replace( '/[\x09\x0a\x0b\x0c\x0d]{1,}/', "\x20", $html[$this->imdb_language] ) );
 
-		$imdb_page_fullcredits_actors_anchors_itemprop_name_count[$this->imdb_language] = substr_count( strtolower( $imdb_page_fullcredits_actors_html[$this->imdb_language] ), 'itemprop="name"' );
+		$imdb_page_fullcredits_actors_anchors_itemprop_name_count[$this->imdb_language] = substr_count( strtolower( $html[$this->imdb_language] ), 'itemprop="name"' );
 
 		if ( !$imdb_page_fullcredits_actors_anchors_itemprop_name_count[$this->imdb_language] ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Full Credits - Actors - 2 - ' . $url . '</h2>';
-			#echo '<pre>' . htmlentities( $imdb_page_fullcredits_actors_html[$this->imdb_language] ) . '</pre>';
 			return false;
 		}
 
-		if ( !preg_match_all( '/\<span class\=\"itemprop\" itemprop\=\"name\"\>[\x20]*([^\x20]+[^\x3c]+[^\x20]+)[\x20]*\<\/span\>/', $imdb_page_fullcredits_actors_html[$this->imdb_language], $imdb_page_fullcredits_actors_matches[$this->imdb_language] ) ) {
+		if ( !preg_match_all( '/\<span class\=\"itemprop\" itemprop\=\"name\"\>[\x20]*([^\x20]+[^\x3c]+[^\x20]+)[\x20]*\<\/span\>/', $html[$this->imdb_language], $matches[$this->imdb_language] ) ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Full Credits - Actors - 3 - ' . $url . '</h2>';
-			#echo '<pre>' . htmlentities( $imdb_page_fullcredits_actors_html[$this->imdb_language] ) . '</pre>';
 			return false;
 		}
 
-		if ( !isset( $imdb_page_fullcredits_actors_matches[$this->imdb_language][1] ) ) {
+		if ( !isset( $matches[$this->imdb_language][1] ) ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Full Credits - Actors - 4 - ' . $url . '</h2>';
-			#echo '<pre>' . htmlentities( $imdb_page_fullcredits_actors_html[$this->imdb_language] ) . '</pre>';
 			return false;
 		}
 
-		if ( count( $imdb_page_fullcredits_actors_matches[$this->imdb_language][1] ) !== $imdb_page_fullcredits_actors_anchors_itemprop_name_count[$this->imdb_language] ) {
+		if ( count( $matches[$this->imdb_language][1] ) !== $imdb_page_fullcredits_actors_anchors_itemprop_name_count[$this->imdb_language] ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Full Credits - Actors - 5 - ' . $url . '</h2>';
-			#echo '<pre>' . htmlentities( $imdb_page_fullcredits_actors_html[$this->imdb_language] ) . '</pre>';
 			return false;
 		}
 
-		$this->raw->actors[$this->imdb_language] = array_unique( $imdb_page_fullcredits_actors_matches[$this->imdb_language][1] );
-		$this->raw->actors_str[$this->imdb_language] = implode( ', ', $this->raw->actors[$this->imdb_language] );
-		$this->raw->actor[$this->imdb_language] = $this->raw->actors[$this->imdb_language][1][0];
+		$this->raw->credits->actors[$this->imdb_language] = array_values( array_unique( $matches[$this->imdb_language][1] ) );
+		$this->raw->credits->actor[$this->imdb_language] = $matches[$this->imdb_language][1][0];
 
 		return true;
 
 	}
 
-	protected function _setDescriptions() {
+	/**
+	 * Extrai os sumários/descrições/sinopses/resumos da página "plot" (Plot Summary)
+	 */
+	protected function _setPlotDescriptions() {
 
 		/**
 		 * Plot Summary
 		 */
 
-		$imdb_page_plotsummary_open_pos[$this->imdb_language] = strpos( $this->imdb_plotsummary_body[$this->imdb_language], '<ul class="zebraList">' );
-		$imdb_page_plotsummary_close_pos[$this->imdb_language] = strpos( $this->imdb_plotsummary_body[$this->imdb_language], '<div class="article" id="see_also">' );
+		$open_pos[$this->imdb_language] = strpos( $this->imdb_plotsummary_body[$this->imdb_language], '<ul class="zebraList">' );
+		$close_pos[$this->imdb_language] = strpos( $this->imdb_plotsummary_body[$this->imdb_language], '<div class="article" id="see_also">' );
 
-		if ( $imdb_page_plotsummary_open_pos[$this->imdb_language] === false || $imdb_page_plotsummary_close_pos[$this->imdb_language] === false ) {
+		if ( $open_pos[$this->imdb_language] === false || $close_pos[$this->imdb_language] === false ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Plot Summary - 1 - ' . $url . '</h2>';
 			return false;
 		}
 
-		$imdb_page_plotsummary_html[$this->imdb_language] = $this->imdb_plotsummary_body[$this->imdb_language];
-		$imdb_page_plotsummary_html[$this->imdb_language] = trim( substr( $imdb_page_plotsummary_html[$this->imdb_language], $imdb_page_plotsummary_open_pos[$this->imdb_language] + 22 ) );
-		$imdb_page_plotsummary_html[$this->imdb_language] = trim( substr( $imdb_page_plotsummary_html[$this->imdb_language], 0, $imdb_page_plotsummary_close_pos[$this->imdb_language] - $imdb_page_plotsummary_open_pos[$this->imdb_language] ) );
-		$imdb_page_plotsummary_html[$this->imdb_language] = trim( preg_replace( '/[\x09\x0a\x0b\x0c\x0d]{1,}/', "\x20", $imdb_page_plotsummary_html[$this->imdb_language] ) );
-		$imdb_page_plotsummary_html[$this->imdb_language] = trim( str_replace( '</p>', '</p>' . "\x0a", $imdb_page_plotsummary_html[$this->imdb_language] ) );
+		$html[$this->imdb_language] = $this->imdb_plotsummary_body[$this->imdb_language];
+		$html[$this->imdb_language] = trim( substr( $html[$this->imdb_language], $open_pos[$this->imdb_language] + 22 ) );
+		$html[$this->imdb_language] = trim( substr( $html[$this->imdb_language], 0, $close_pos[$this->imdb_language] - $open_pos[$this->imdb_language] ) );
+		$html[$this->imdb_language] = trim( preg_replace( '/[\x09\x0a\x0b\x0c\x0d]{1,}/', "\x20", $html[$this->imdb_language] ) );
+		$html[$this->imdb_language] = trim( str_replace( '</p>', '</p>' . "\x0a", $html[$this->imdb_language] ) );
 
-		if ( !preg_match_all( '/\<p class\=\"plotSummary\"\>[\x20]*([^\x20]+.+[^\x20]+)[\x20]*\<\/p\>/', $imdb_page_plotsummary_html[$this->imdb_language], $imdb_page_plotsummary_matches[$this->imdb_language] ) ) {
+		if ( !preg_match_all( '/\<p class\=\"plotSummary\"\>[\x20]*([^\x20]+.+[^\x20]+)[\x20]*\<\/p\>/', $html[$this->imdb_language], $imdb_page_plotsummary_matches[$this->imdb_language] ) ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Plot Summary - 2 - ' . $url . '</h2>';
 			return false;
 		}
 
 		if ( !isset( $imdb_page_plotsummary_matches[$this->imdb_language][1] ) ) {
 			$this->_setError( 'Error' . __LINE__ );
-			#echo '<h2>Imdb - Plot Summary - 3 - ' . $url . '</h2>';
 			return false;
 		}
 
-		$this->raw->descriptions[$this->imdb_language] = $imdb_page_plotsummary_matches[$this->imdb_language][1];
-
-		foreach ( $this->raw->descriptions[$this->imdb_language] as $imdb_description_tmp[$this->imdb_language] ) {
-			if ( strpos( $imdb_description_tmp[$this->imdb_language], "\x0d" ) !== false || strpos( $imdb_description_tmp[$this->imdb_language], "\x0a" ) !== false ) {
-				$this->_setError( 'Error' . __LINE__ );
-				#echo '<h2>Imdb - Plot Summary - ODOA - ' . $url . '</h2>';
-				return false;
-			}
-			if ( stripos( $imdb_description_tmp[$this->imdb_language], '<p' ) !== false ) {
-				$this->_setError( 'Error' . __LINE__ );
-				#echo '<h2>Imdb - Plot Summary - &lt;p&gt; - ' . $url . '</h2>';
-				return false;
-			}
-		}
+		$this->raw->plot->descriptions[$this->imdb_language] = $imdb_page_plotsummary_matches[$this->imdb_language][1];
 
 		return true;
 
