@@ -639,10 +639,12 @@ class DuckDuckGoSearch {
 		curl_close( $this->http->search->ch );
 
 		if ( $this->http->search->exec === false ) {
-			$this->_setProxies();
-			$this->_nextProxy();
-			$this->default->retries++;
-			return $this->_http_search_main();
+			if ( $this->settings->use_proxy ) {
+				$this->_setProxies();
+				$this->_nextProxy();
+				$this->default->retries++;
+				return $this->_http_search_main();
+			}
 			$this->___setErrorMethod( __FUNCTION__, 'curl_exec' );
 			return false;
 		}
@@ -659,12 +661,14 @@ class DuckDuckGoSearch {
 
 		if ( $this->http->search->info->http_code !== 200 ) {
 			if ( $this->http->search->info->http_code === 301 ) {
-				$this->_setProxies();
-				$this->_nextProxy();
-				$this->default->retries++;
-				return $this->_http_search_main();
-				if ( preg_match( '/[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn][\x20]*\:[\x20]*([^\x0d\x0a]+)/', $this->http->search->head, $match ) ) {
-					if ( $match[1] === 'https://rundmc.duckduckgo.com:3433/' ) {
+				if ( $this->settings->use_proxy ) {
+					$this->_setProxies();
+					$this->_nextProxy();
+					$this->default->retries++;
+					return $this->_http_search_main();
+					if ( preg_match( '/[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn][\x20]*\:[\x20]*([^\x0d\x0a]+)/', $this->http->search->head, $match ) ) {
+						if ( $match[1] === 'https://rundmc.duckduckgo.com:3433/' ) {
+						}
 					}
 				}
 			}
@@ -699,7 +703,7 @@ class DuckDuckGoSearch {
 	protected function _http_search_extract_foldername() {
 
 		$foldername = sprintf( '%s/%s/%s', $this->input->search_encode, $this->input->language_l, $this->input->page );
-		#$foldername = md5( $foldername );
+		$foldername = strlen( $foldername ) <= 250 ? $foldername : md5( $foldername );
 
 		return $foldername;
 
@@ -807,9 +811,6 @@ class DuckDuckGoSearch {
 			$body = ltrim( substr( $body, $pos + 17 ) );
 		} elseif ( preg_match( '/if[\x00-\x20\x7f]*\([\x00-\x20\x7f]*nrn[\x00-\x20\x7f]*\)[\x00-\x20\x7f]*nrn[\x00-\x20\x7f]*\([\x00-\x20\x7f]*[\x22\x27]{0,}[^\x22\x27]+[\x22\x27]{0,}[\x00-\x20\x7f]*\,[\x00-\x20\x7f]*/', $body, $match, PREG_OFFSET_CAPTURE ) ) {
 			$body = ltrim( substr( $body, $match[0][1] + strlen( $match[0][0] ) ) );
-			if ( substr( $body, -2 ) === ');' ) {
-				$body = rtrim( substr( $body, 0, -2 ) );
-			}
 		}
 
 		/**
@@ -835,7 +836,7 @@ class DuckDuckGoSearch {
 		}
 
 		foreach ( $body_decode as $entry ) {
-			$url = strip_tags( $entry->c );
+			$url = $entry->c;
 			if ( in_array( $url, $this->output->urls ) ) {
 				continue;
 			}
