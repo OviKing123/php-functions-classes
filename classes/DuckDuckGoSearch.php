@@ -70,12 +70,11 @@ class DuckDuckGoSearch {
 		$this->input->page_s = null;
 
 		$this->output->links = array();
-		$this->output->titles = array();
 		$this->output->urls = array();
+		$this->output->titles = array();
 		$this->output->descriptions = array();
 		$this->output->results = array();
 
-		$this->http->get = new StdClass();
 		$this->http->search = new StdClass();
 
 		$this->settings->use_cache = true;
@@ -83,9 +82,9 @@ class DuckDuckGoSearch {
 		$this->settings->use_proxy = false;
 		$this->settings->max_retries = 5;
 
-		isset( $search ) && $this->setSearch( $search );
-		isset( $language ) && $this->setLanguage( $language );
-		isset( $page ) && $this->setPage( $page );
+		isset( $search ) && $this->_setSearch( $search );
+		isset( $language ) && $this->_setLanguage( $language );
+		isset( $page ) && $this->_setPage( $page );
 
 	}
 
@@ -141,7 +140,7 @@ class DuckDuckGoSearch {
 	 * [setSearch description]
 	 * @param [type] $search [description]
 	 */
-	public function setSearch( $search ) {
+	public function setSearch( $search = null ) {
 		return $this->_setSearch( $search );
 	}
 
@@ -149,7 +148,7 @@ class DuckDuckGoSearch {
 	 * [setLanguage description]
 	 * @param [type] $language [description]
 	 */
-	public function setLanguage( $language ) {
+	public function setLanguage( $language = null ) {
 		return $this->_setLanguage( $language );
 	}
 
@@ -157,8 +156,16 @@ class DuckDuckGoSearch {
 	 * [setPage description]
 	 * @param [type] $page [description]
 	 */
-	public function setPage( $page ) {
+	public function setPage( $page = null ) {
 		return $this->_setPage( $page );
+	}
+
+	/**
+	 * [setProxies description]
+	 * @param [type] $file [description]
+	 */
+	public function setProxies( $file = null ) {
+		return $this->_setProxies( $file );
 	}
 
 	/**
@@ -209,19 +216,19 @@ class DuckDuckGoSearch {
 	}
 
 	/**
-	 * [getTitles description]
-	 * @return [type] [description]
-	 */
-	public function getTitles() {
-		return $this->output->titles;
-	}
-
-	/**
 	 * [getUrls description]
 	 * @return [type] [description]
 	 */
 	public function getUrls() {
 		return $this->output->urls;
+	}
+
+	/**
+	 * [getTitles description]
+	 * @return [type] [description]
+	 */
+	public function getTitles() {
+		return $this->output->titles;
 	}
 
 	/**
@@ -233,14 +240,6 @@ class DuckDuckGoSearch {
 	}
 
 	/**
-	 * [getResults description]
-	 * @return [type] [description]
-	 */
-	public function getResults() {
-		return $this->output->results;
-	}
-
-	/**
 	 * [getAllUrls description]
 	 * @return [type] [description]
 	 */
@@ -248,6 +247,14 @@ class DuckDuckGoSearch {
 		static $urls;
 		$urls = $urls !== null ? $urls : array_values( array_unique( array_merge( $this->output->links, $this->output->urls ) ) );
 		return $urls;
+	}
+
+	/**
+	 * [getResults description]
+	 * @return [type] [description]
+	 */
+	public function getResults() {
+		return $this->output->results;
 	}
 
 	/**
@@ -490,14 +497,7 @@ class DuckDuckGoSearch {
 			}
 		}
 
-		#$this->_http_get();
-		#$this->_parse_get();
-
 		if ( !$this->_http_search() ) {
-			return $this;
-		}
-
-		if ( !$this->_parse_search() ) {
 			return $this;
 		}
 
@@ -514,9 +514,6 @@ class DuckDuckGoSearch {
 	/**
 	 * Métodos Protegidos - Métodos Principais
 	 */
-
-	protected function _http_get() {}
-	protected function _parse_get() {}
 
 	/**
 	 * [_http_search description]
@@ -574,8 +571,13 @@ class DuckDuckGoSearch {
 	 */
 	protected function _parse_search() {
 
-		$this->_parse_search_get_links();
-		$this->_parse_search_get_all();
+		if ( !$this->_parse_search_get_links() ) {
+			return false;
+		}
+
+		if ( !$this->_parse_search_get_all() ) {
+			return false;
+		}
 
 		return true;
 
@@ -702,7 +704,7 @@ class DuckDuckGoSearch {
 	 */
 	protected function _http_search_extract_foldername() {
 
-		$foldername = sprintf( '%s/%s/%s', $this->input->search_encode, $this->input->language_l, $this->input->page );
+		$foldername = sprintf( '%s/%s/%s', $this->input->language, $this->input->search_encode, $this->input->page );
 		$foldername = strlen( $foldername ) <= 250 ? $foldername : md5( $foldername );
 
 		return $foldername;
@@ -842,18 +844,110 @@ class DuckDuckGoSearch {
 			}
 			$title = strip_tags( $entry->t );
 			$description = strip_tags( $entry->a );
-			$this->output->titles[] = $title;
 			$this->output->urls[] = $url;
+			$this->output->titles[] = $title;
 			$this->output->descriptions[] = $description;
 		}
+
+		$this->_parse_search_fix_titles();
+		$this->_parse_search_fix_descriptions();
+
+		$this->_parse_search_set_results();
 
 		return true;
 
 	}
 
 	/**
-	 * Métodos Protegidos Globais - Funções Usadas Por Qualquer Outro Método
+	 * [_parse_search_fix_titles description]
+	 * @return [type] [description]
 	 */
+	protected function _parse_search_fix_titles() {
+
+		$this->output->titles = array_map( 'strip_tags', $this->output->titles );
+
+		foreach ( $this->output->titles as $key => $value ) {
+			/* … */
+			$value = str_replace( "\xe2\x80\xa6", '...', $value );
+			$value = str_replace( "\x85", '...', $value );
+			$value = str_replace( '&hellip;', '...', $value );
+			/* – */
+			$value = str_replace( "\xe2\x80\x93", '-', $value );
+			$value = str_replace( "\x96", '', $value );
+			$value = str_replace( '&ndash;', '', $value );
+			/* — */
+			$value = str_replace( "\xe2\x80\x94", '-', $value );
+			$value = str_replace( "\x97", '', $value );
+			$value = str_replace( '&mdash;', '', $value );
+			/* » */
+			$value = str_replace( "\xc2\xbb", '>', $value );
+			$value = str_replace( "\xbb", '>', $value );
+			$value = str_replace( '&raquo;', '>', $value );
+			/* trim */
+			$value = rtrim( $value );
+			$value = substr( $value, -3 ) === '...' ? rtrim( substr( $value, 0, -3 ) ) : $value;
+			$value = substr( $value, 0, 3 ) === '...' ? ltrim( substr( $value, 3 ) ) : $value;
+			$value = trim( $value, "\x20\x2d\x3b\x7c" );
+			$value = ( $tmp = html_entity_decode( $value ) ) !== '' ? $tmp : $value;
+			$this->output->titles[$key] = $value;
+		}
+
+	}
+
+	/**
+	 * [_parse_search_fix_descriptions description]
+	 * @return [type] [description]
+	 */
+	protected function _parse_search_fix_descriptions() {
+
+		$this->output->descriptions = array_map( 'strip_tags', $this->output->descriptions );
+
+		foreach ( $this->output->descriptions as $key => $value ) {
+			/* … */
+			$value = str_replace( "\xe2\x80\xa6", '...', $value );
+			$value = str_replace( "\x85", '...', $value );
+			$value = str_replace( '&hellip;', '...', $value );
+			/* – */
+			$value = str_replace( "\xe2\x80\x93", '-', $value );
+			$value = str_replace( "\x96", '', $value );
+			$value = str_replace( '&ndash;', '', $value );
+			/* — */
+			$value = str_replace( "\xe2\x80\x94", '-', $value );
+			$value = str_replace( "\x97", '', $value );
+			$value = str_replace( '&mdash;', '', $value );
+			/* » */
+			$value = str_replace( "\xc2\xbb", '>', $value );
+			$value = str_replace( "\xbb", '>', $value );
+			$value = str_replace( '&raquo;', '>', $value );
+			/* trim */
+			$value = rtrim( $value );
+			$value = substr( $value, -3 ) === '...' ? rtrim( substr( $value, 0, -3 ) ) : $value;
+			$value = substr( $value, 0, 3 ) === '...' ? ltrim( substr( $value, 3 ) ) : $value;
+			$value = trim( $value, "\x20\x2d\x3b\x7c" );
+			$value = ( $tmp = html_entity_decode( $value ) ) !== '' ? $tmp : $value;
+			$this->output->descriptions[$key] = $value;
+		}
+
+	}
+
+	/**
+	 * [_parse_search_set_results description]
+	 * @return [type] [description]
+	 */
+	protected function _parse_search_set_results() {
+
+		foreach ( $this->output->urls as $key => $value ) {
+			$array = array(
+				'url' => $this->output->urls[$key],
+				'title' => $this->output->titles[$key],
+				'description' => $this->output->descriptions[$key],
+			);
+			$this->output->results[$key] = $array;
+		}
+
+		return true;
+
+	}
 
 }
 
