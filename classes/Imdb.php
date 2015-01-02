@@ -123,6 +123,8 @@ class Imdb {
 		$this->normal->credits = new ImdbCredits();
 
 		$this->settings->only_english = true;
+		$this->settings->duration_is_manual = false;
+		$this->settings->cache_root = false;
 
 	}
 
@@ -184,6 +186,14 @@ class Imdb {
 
 	}
 
+	public function enableCacheRoot() {
+
+		$this->settings->cache_root = true;
+
+		return $this;
+
+	}
+
 	protected function _setId( $id ) {
 
 		return preg_match( '/(tt\d+)/', $id, $match ) ? $match[1] : null;
@@ -229,18 +239,20 @@ class Imdb {
 	}
 
 	protected function _hasError() {
+
 		return isset( $this->error );
+
 	}
 
 	protected function _http() {
 
-		if ( defined( 'ABSPATH' ) ) {
+		if ( defined( 'ABSPATH' ) && !$this->settings->cache_root ) {
 			$this->http->ttid_cache_folder = ABSPATH . 'wp-content/cache/class-imdb/ttid/';
 		} else {
 			$this->http->ttid_cache_folder = $_SERVER['DOCUMENT_ROOT'] . '/cache/classes/' . __CLASS__ . '/ttid/';
 		}
 
-		if ( !file_exists( $this->http->ttid_cache_folder ) && !mkdir( $this->http->ttid_cache_folder, 0755, true ) ) {
+		if ( !is_dir( $this->http->ttid_cache_folder ) && !mkdir( $this->http->ttid_cache_folder, 0755, true ) ) {
 			$this->_setError( 'Protected_Run_File_Exists_Mk_Dir' );
 			return false;
 		}
@@ -253,12 +265,6 @@ class Imdb {
 		$this->imdb_languages = array(
 			'en-US', 'pt-BR', 'es-ES', 'pt-PT', 'fr-FR', 'it-IT', 'de-DE', 'jp-JP'
 		);
-
-		/*
-		if ( $this->imdb_language === 'en-US' ) {
-			break;
-		}
-		*/
 
 		foreach ( $this->imdb_languages as $this->imdb_language ) {
 
@@ -1030,6 +1036,8 @@ class Imdb {
 
 		$db = $db !== null ? $db : array(
 			'tt1352386' => '84',
+			'tt1552224' => '98',
+			'tt2089826' => '157',
 		);
 
 		isset( $db[$this->id] ) && $this->raw->index->duration[$this->imdb_language] = $db[$this->id];
@@ -1223,8 +1231,8 @@ class Imdb {
 		 * USA
 		 */
 
-		if ( preg_match_all( '/((3[0-1]|[1-2][0-9]|[1-9]) (January|February|March|April|May|June|July|August|September|October|November|December) (201[0-5]|200[0-9]|19[0-9][0-9])).+\=[\x22\x27]{0,1}((201[0-5]|200[0-9]|19[0-9][0-9])\-(1[0-2]|0[1-9])\-(3[0-1]|[1-2][0-9]|0[1-9]))[\x22\x27]{0,1}[^\x3e]*\/?\>[\x20]*\((West Germany|South Africa|USA|Brazil|Mexico|Croatia|Indonesia|Hong Kong|Philippines|Spain|Norway|Portugal|France|Italy|Germany|Japan|Canada|Netherlands|Ireland|China|UK|Argentina|Belgium)\)[\x20]*(?:&ndash;)?[\x20]*\x3c/', $imdb_page_index_meta_datepublished_html[$this->imdb_language], $imdb_page_index_meta_datepublished_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
-		} elseif ( preg_match_all( '/((.) (January|February|March|April|May|June|July|August|September|October|November|December) (201[0-5]|200[0-9]|19[0-9][0-9])).+\=[\x22\x27]{0,1}((201[0-5]|200[0-9]|19[0-9][0-9])\-(1[0-2]|0[1-9])(?:\-(.))?)[\x22\x27]{0,1}[^\x3e]*\/?\>[\x20]*\((West Germany|South Africa|USA|Brazil|Mexico|Croatia|Indonesia|Hong Kong|Philippines|Spain|Norway|Portugal|France|Italy|Germany|Japan|Canada|Netherlands|Ireland|China|UK|Argentina|Belgium)\)[\x20]*(?:&ndash;)?[\x20]*\x3c/', $imdb_page_index_meta_datepublished_html[$this->imdb_language], $imdb_page_index_meta_datepublished_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
+		if ( preg_match_all( '/((3[0-1]|[1-2][0-9]|[1-9]) (January|February|March|April|May|June|July|August|September|October|November|December) (201[0-5]|200[0-9]|19[0-9][0-9])).+\=[\x22\x27]{0,1}((201[0-5]|200[0-9]|19[0-9][0-9])\-(1[0-2]|0[1-9])\-(3[0-1]|[1-2][0-9]|0[1-9]))[\x22\x27]{0,1}[^\x3e]*\/?\>[\x20]*\((West Germany|South Africa|USA|Brazil|Mexico|Croatia|Indonesia|Hong Kong|Philippines|United Arab Emirates|Kuwait|Sweden|Lithuania|Austria|Israel|South Korea|New Zealand|Switzerland|Spain|Norway|Portugal|France|Italy|Germany|Japan|Canada|Netherlands|Ireland|China|UK|Argentina|Belgium)\)[\x20]*(?:&ndash;)?[\x20]*\x3c/', $imdb_page_index_meta_datepublished_html[$this->imdb_language], $imdb_page_index_meta_datepublished_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
+		} elseif ( preg_match_all( '/((.) (January|February|March|April|May|June|July|August|September|October|November|December) (201[0-5]|200[0-9]|19[0-9][0-9])).+\=[\x22\x27]{0,1}((201[0-5]|200[0-9]|19[0-9][0-9])\-(1[0-2]|0[1-9])(?:\-(.))?)[\x22\x27]{0,1}[^\x3e]*\/?\>[\x20]*\((West Germany|South Africa|USA|Brazil|Mexico|Croatia|Indonesia|Hong Kong|Philippines|United Arab Emirates|Kuwait|Sweden|Lithuania|Austria|Israel|South Korea|New Zealand|Switzerland|Spain|Norway|Portugal|France|Italy|Germany|Japan|Canada|Netherlands|Ireland|China|UK|Argentina|Belgium)\)[\x20]*(?:&ndash;)?[\x20]*\x3c/', $imdb_page_index_meta_datepublished_html[$this->imdb_language], $imdb_page_index_meta_datepublished_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
 			$imdb_page_index_meta_datepublished_matches[$this->imdb_language][0][1] = str_replace( '>', '1', $imdb_page_index_meta_datepublished_matches[$this->imdb_language][0][1] );
 			$imdb_page_index_meta_datepublished_matches[$this->imdb_language][0][2] = '1';
 			$imdb_page_index_meta_datepublished_matches[$this->imdb_language][0][5] .= '-01';
@@ -1297,7 +1305,7 @@ class Imdb {
 			return false;
 		}
 
-		if ( preg_match_all( '/\d+ IMDb users have given a weighted average vote of (([0-9\.]+)\/([0-9\.]+))\"[^\x3e]*\>[\x00-\x20\x7f]*\<span itemprop\=\"ratingCount\"\>[\x00-\x20\x7f]*(\d+)[\x00-\x20\x7f]*\<\/span\> users/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_votes_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
+		if ( preg_match_all( '/\d+ IMDb users have given a weighted average vote of (([0-9\.]+)\/([0-9\.]+))\"[^\x3e]*\>[\x00-\x20\x7f]*\<span itemprop\=\"ratingCount\"\>[\x00-\x20\x7f]*([0-9\,\.]+)[\x00-\x20\x7f]*\<\/span\> users/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_votes_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
 
 			if ( count( $imdb_page_index_votes_matches[$this->imdb_language] ) !== 1 ) {
 				$this->_setError( 'Protected_SetIndexVotes_Count_Diff_1_' . __LINE__ );
@@ -1309,7 +1317,7 @@ class Imdb {
 				return false;
 			}
 
-			$this->raw->index->votes[$this->imdb_language] = $imdb_page_index_votes_matches[$this->imdb_language][0][4];
+			$this->raw->index->votes[$this->imdb_language] = str_replace( array( ',', '.' ), '', $imdb_page_index_votes_matches[$this->imdb_language][0][4] );
 
 		} elseif ( preg_match_all( '/\<span\b[^\x3e]*itemprop\=\"ratingCount\"[^\x3e]*\>[\x00-\x20\x7f]*(\d+)[\x00-\x20\x7f]*\<\/span\>[\x00-\x20\x7f]*users/', $this->imdb_index_body[$this->imdb_language], $imdb_page_index_votes_matches[$this->imdb_language], PREG_SET_ORDER ) ) {
 
@@ -1600,6 +1608,7 @@ class Imdb {
 			$has_original_titles[$this->imdb_language] = false;
 
 			foreach ( $akas_matches[$this->imdb_language][1] as $key => $country ) {
+				$country = str_replace( '(3-D version)', '(3D version)', $country );
 				$country_underline = $country;
 				$country_underline = str_replace( ' ', '_', $country_underline );
 				$country_underline = function_exists( 'mb_strtolower' ) ? mb_strtolower( $country_underline ) : strtolower( $country_underline );
@@ -1631,7 +1640,8 @@ class Imdb {
 					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
 						if ( isset( $this->raw->info->titles[$this->imdb_language][$country . ' 2'] ) ) {
 							if ( isset( $this->raw->info->titles[$this->imdb_language][$country . ' 3'] ) ) {
-								$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_' . $this->imdb_language );
+								echo 'haha';
+								$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_A_' . $this->imdb_language );
 								return false;
 							} else {
 								$this->raw->info->titles[$this->imdb_language][$country . ' 3'] = $akas_matches[$this->imdb_language][2][$key];
@@ -1655,10 +1665,11 @@ class Imdb {
 						'Canada (French title)', 'China (Mandarin title)', 'Colombia (poster title)',
 						'Finland (DVD title)', 'Finland (poster title)', 'Finland (Swedish title)', 'Finland (video title)',
 						'France (DVD box title)', 'France (TV title)', 'France (video box title)',
-						'Germany (alternative title)', 'Germany (TV title)',
+						'Germany (alternative title)', 'Germany (pre-release title)', 'Germany (TV title)',
 						'Greece (DVD title)', 'Greece (reissue title)', 'Greece (video title)', 'Greece (transliterated ISO-LATIN-1 title)',
 						'Hong Kong (Cantonese title)',
-						'Israel (Hebrew title)', 'Italy (alternative title)', 'Italy (dvd title)',
+						'Israel (Hebrew title)',
+						'Italy (alternative title)', 'Italy (dvd title)', 'Italy (pre-release title)',
 						'Luxembourg (French title)',
 						'Mexico (informal title)', 'Mexico (DVD box title)',
 						'Romania (long title)',
@@ -1670,8 +1681,12 @@ class Imdb {
 						'West Germany (TV title)', 'West Germany (video title)',
 					) ) ) {
 					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
-						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_' . $this->imdb_language );
-						return false;
+						if ( isset( $this->raw->info->titles[$this->imdb_language][$country . ' 2'] ) ) {
+							$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_B_' . $this->imdb_language );
+							return false;
+						}
+						$this->raw->info->titles[$this->imdb_language][$country . ' 2'] = $akas_matches[$this->imdb_language][2][$key];
+						continue;
 					}
 					$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
 					continue;
@@ -1682,9 +1697,10 @@ class Imdb {
 						'India (Tamil title) (dubbed version)',
 						'Japan (video title) (English title)',
 						'Philippines (English title) (review title)',
+						'Philippines (English title) (pre-release title)',
 					) ) ) {
 					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
-						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_' . $this->imdb_language );
+						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_C_' . $this->imdb_language );
 						return false;
 					}
 					$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
@@ -1782,9 +1798,14 @@ class Imdb {
 				}
 				if ( $country === 'USA (working title)' ) {
 					if ( isset( $this->raw->info->usa_working_title[$this->imdb_language] ) ) {
-						$this->_setError( 'Protected_SetInfoAkas_USA_Working_Title_Already_Defined' );
-						$this->_setError( $this->raw->info->usa_working_title[$this->imdb_language] . '|' . $akas_matches[$this->imdb_language][2][$key] );
-						return false;
+						if ( isset( $this->raw->info->usa_working_title_2[$this->imdb_language] ) ) {
+							$this->_setError( 'Protected_SetInfoAkas_USA_Working_Title_Already_Defined' );
+							$this->_setError( $this->raw->info->usa_working_title[$this->imdb_language] . '|' . $akas_matches[$this->imdb_language][2][$key] );
+							return false;
+						} else {
+							$this->raw->info->usa_working_title_2[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
+							continue;
+						}
 					}
 					$this->raw->info->usa_working_title[$this->imdb_language] = $akas_matches[$this->imdb_language][2][$key];
 					continue;
@@ -1831,16 +1852,37 @@ class Imdb {
 				/**
 				 * Country (Type title)
 				 */
-				if ( substr_count( $country, '(' ) === 1 && preg_match( '/^[A-Za-z\x20\x28\x29]+$/', $country ) ) {
+				$_28_count = substr_count( $country, '(' );
+				if ( ( $_28_count === 1 || $_28_count === 2 ) && preg_match( '/^[A-Za-z0-9\x20\x28\x29]+$/', $country ) ) {
 					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
-						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_' . $this->imdb_language );
+						if ( isset( $this->raw->info->titles[$this->imdb_language][$country . ' 2'] ) ) {
+							$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_D_' . $this->imdb_language );
+							return false;
+						} else {
+							$this->raw->info->titles[$this->imdb_language][$country . ' 2'] = $akas_matches[$this->imdb_language][2][$key];
+							continue;
+						}
+					} else {
+						$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
+						continue;
+					}
+				} elseif ( ( $_28_count === 1 || $_28_count === 2 ) && preg_match( '/^World\-wide [A-Za-z0-9\x20\x28\x29]+$/', $country ) ) {
+					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
+						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_E_' . $this->imdb_language );
+						return false;
+					}
+					$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
+					continue;
+				} elseif ( preg_match( '/^[A-Za-z0-9\x20\x28\x29]+$/', $country ) ) {
+					if ( isset( $this->raw->info->titles[$this->imdb_language][$country] ) ) {
+						$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_F_' . $this->imdb_language );
 						return false;
 					}
 					$this->raw->info->titles[$this->imdb_language][$country] = $akas_matches[$this->imdb_language][2][$key];
 					continue;
 				}
 				var_dump( $country );
-				$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_3_' . $this->imdb_language );
+				$this->_setError( 'Protected_Parse_ReleaseInfo_Default_Country_Duplicated_G_' . $this->imdb_language );
 				return false;
 			}
 
@@ -1887,7 +1929,7 @@ class Imdb {
 			return false;
 		}
 
-		if ( $close_count[$this->imdb_language] !== 1 && $close_count[$this->imdb_language] !== 2 && $close_count[$this->imdb_language] !== 5 ) {
+		if ( $close_count[$this->imdb_language] !== 1 && $close_count[$this->imdb_language] !== 2 && $close_count[$this->imdb_language] !== 5 && $close_count[$this->imdb_language] !== 13 ) {
 			$this->_setError( 'Error' . __LINE__ );
 			return false;
 		}
@@ -1902,7 +1944,7 @@ class Imdb {
 			return false;
 		}
 
-		if ( count( $matches[$this->imdb_language][1] ) !== 1 && count( $matches[$this->imdb_language][1] ) !== 2 && count( $matches[$this->imdb_language][1] ) !== 5 ) {
+		if ( count( $matches[$this->imdb_language][1] ) !== 1 && count( $matches[$this->imdb_language][1] ) !== 2 && count( $matches[$this->imdb_language][1] ) !== 5 && count( $matches[$this->imdb_language][1] ) !== 13 ) {
 			$this->_setError( 'Error' . __LINE__ );
 			return false;
 		}
